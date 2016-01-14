@@ -49,7 +49,7 @@
     </pluginRepository>
   </pluginRepositories>
 
-  <version>0.1</version>
+  <version>0.1-SNAPSHOT</version>
   <description>This plugin integrates you with CrossBrowserTesting.com.</description>
   <dependencies>
   	<dependency>
