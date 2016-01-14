@@ -53,16 +53,6 @@
   <description>This plugin integrates you with CrossBrowserTesting.com.</description>
   <dependencies>
   	<dependency>
-  		<groupId>org.seleniumhq.selenium</groupId>
-  		<artifactId>selenium-java</artifactId>
-  		<version>2.48.2</version>
-  	</dependency>
-  	<dependency>
-  		<groupId>org.seleniumhq.selenium</groupId>
-  		<artifactId>selenium-remote-driver</artifactId>
-  		<version>2.48.2</version>
-  	</dependency>
-  	<dependency>
   		<groupId>org.json</groupId>
   		<artifactId>json</artifactId>
   		<version>20151123</version>
