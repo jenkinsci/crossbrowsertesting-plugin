@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -8,7 +7,7 @@
     <artifactId>plugin</artifactId>
     <!-- Baseline Jenkins version you use to build and test the plugin. Users must have this version or newer to run. -->
     <version>1.580.1</version>
-    <relativePath/>
+    <relativePath />
   </parent>
   <groupId>org.jenkins-ci.plugins</groupId>
   <artifactId>crossbrowsertesting</artifactId>
@@ -35,6 +34,7 @@
     <connection>scm:git:git://github.com/jenkinsci/crossbrowsertesting-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/crossbrowsertesting-plugin.git</developerConnection>
     <url>http://github.com/jenkinsci/crossbrowsertesting-plugin</url>
+    <tag>crossbrowsertesting-0.1</tag>
   </scm>
   <repositories>
     <repository>
@@ -49,7 +49,7 @@
     </pluginRepository>
   </pluginRepositories>
 
-  <version>0.1-SNAPSHOT</version>
+  <version>0.1</version>
   <description>This plugin integrates you with CrossBrowserTesting.com.</description>
   <dependencies>
   	<dependency>
