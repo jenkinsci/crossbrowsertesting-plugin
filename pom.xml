@@ -34,7 +34,7 @@
     <connection>scm:git:git://github.com/jenkinsci/crossbrowsertesting-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/crossbrowsertesting-plugin.git</developerConnection>
     <url>http://github.com/jenkinsci/crossbrowsertesting-plugin</url>
-    <tag>crossbrowsertesting-0.3</tag>
+    <tag>crossbrowsertesting-0.1</tag>
   </scm>
   <repositories>
     <repository>
@@ -49,7 +49,7 @@
     </pluginRepository>
   </pluginRepositories>
 
-  <version>0.3</version>
+  <version>0.4-SNAPSHOT</version>
   <description>This plugin integrates you with CrossBrowserTesting.com.</description>
   <dependencies>
   	<dependency>
