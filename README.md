@@ -45,7 +45,7 @@ you can find your api key [here][cbt_apidocs] (must be logged in)
 3. Click **CrossBrowserTesting.com**.
 4. Add the **Operating System**, **Browser**, and **Screen Resolution** that you want to run a Selenium Test on. *You can add multiple build steps to run multiple selenium tests.*
 5. Click **Save**
-6. Click **Build Now** to build the project. Output from the selenium script will 
+6. Click **Build Now** to build the project. Output from the selenium script will be displayed in **Console Output** for the build.
 
 #### Building the plugin for testing
 
