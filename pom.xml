@@ -48,7 +48,7 @@
       <url>http://repo.jenkins-ci.org/public/</url>
     </pluginRepository>
   </pluginRepositories>
-
+  <!-- Make sure the version has the new point release and has "-SNAPSHOT"  -->
   <version>0.4-SNAPSHOT</version>
   <description>This plugin integrates you with CrossBrowserTesting.com.</description>
   <dependencies>
