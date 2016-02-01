@@ -73,6 +73,6 @@
       </plugin>
     </plugins>
   </build>
-  <description>This plugin integrates users with Selenium Testing on &lt;a href=&quot;http://crossbrowsertesting.com&quot;&gt;CrossBrowserTesting.com&lt;/a&gt; CrossBrowserTesting.com provides cross browser testing on Windows, Macs, and real iPhones, iPads, and Android Phones and Tablets.
+  <description>This plugin integrates users with Selenium Testing on CrossBrowserTesting.com. CrossBrowserTesting.com provides cross browser testing on Windows, Macs, and real iPhones, iPads, and Android Phones and Tablets.
 </description>
 </project>
