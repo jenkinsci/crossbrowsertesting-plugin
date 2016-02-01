@@ -1,5 +1,5 @@
 ##CrossBrowserTesting.com Jenkins Plugin
-#### Integrates Jenkins with Selenium Testing CrossBrowserTesting.com
+#### This plugin integrates Jenkins users with Selenium Testing on CrossBrowserTesting.com. CrossBrowserTesting.com provides cross browser testing of websites, webpages, and web applications on Windows, Macs, and real iPhones, iPads, and Android Phones and Tablets.
 Wiki: https://wiki.jenkins-ci.org/display/JENKINS/CrossBrowserTesting+Plugin
 
 #### Installation
@@ -31,12 +31,13 @@ The CrossBrowserTesting.com Jenkins Plugin passes your build step information to
 |CBT_BROWSER| the apiname of the selected Browser |
 |CBT_RESOLUTION| the name of the selected Screen Resolution |
 
+See the examples directory for a few language specific sample scripts.
+
 ###### Saving Your CrossBrowserTesting.com API Credentials
 1. Go to your installation's management screen.
 2. Click **Configure System**.
 3. Find the section labeled **CrossBrowserTesting.com**.
-4. Enter your CrossBrowserTesting.com Username and API Key information.
-you can find your api key [here][cbt_apidocs] (must be logged in)
+4. Enter your CrossBrowserTesting.com Username and API Key information. You can find your api key [here][cbt_apidocs] (must be logged in)
 5. Click **Save**.
 
 ###### Build Step
@@ -45,9 +46,9 @@ you can find your api key [here][cbt_apidocs] (must be logged in)
 3. Click **CrossBrowserTesting.com**.
 4. Add the **Operating System**, **Browser**, and **Screen Resolution** that you want to run a Selenium Test on. *You can add multiple build steps to run multiple selenium tests.*
 5. Click **Save**
-6. Click **Build Now** to build the project. Output from the selenium script will be displayed in **Console Output** for the build.
+6. Click **Build Now** to build the project. All files in the project's workspace will be ran (make sure the selenium scripts are executable). Output from the selenium script will be displayed in **Console Output** for the build.
 
-#### Building the plugin for testing
+#### Building the plugin for testing/development
 
 ###### Requirements:
 - [JDK][java] &#8805; 8
