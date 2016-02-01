@@ -49,12 +49,8 @@
     </pluginRepository>
   </pluginRepositories>
   <!-- Make sure the version has the new point release and has "-SNAPSHOT"  -->
-<<<<<<< HEAD
   <version>0.6-SNAPSHOT</version>
-  <description>This plugin integrates you with CrossBrowserTesting.com.</description>
-=======
-  <version>0.5-SNAPSHOT</version>
->>>>>>> develop
+  <description>This plugin integrates Jenkins users with Selenium Testing on CrossBrowserTesting.com. CrossBrowserTesting.com provides cross browser testing of websites, webpages, and web applications on Windows, Macs, and real iPhones, iPads, and Android Phones and Tablets.</description>
   <dependencies>
   	<dependency>
   		<groupId>org.json</groupId>
