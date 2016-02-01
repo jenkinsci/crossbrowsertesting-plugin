@@ -3,5 +3,5 @@
   This view is used to render the installed plugins page.
 -->
 <div>
-  This plugin integrates you with CrossBrowserTesting.com.
+  This plugin integrates users with Selenium Testing on <a href="http://crossbrowsertesting.com">CrossBrowserTesting.com</a> CrossBrowserTesting.com provides cross browser testing on Windows, Macs, and real iPhones, iPads, and Android Phones and Tablets.
 </div>

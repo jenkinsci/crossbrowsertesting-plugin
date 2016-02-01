@@ -34,7 +34,7 @@
     <connection>scm:git:git://github.com/jenkinsci/crossbrowsertesting-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/crossbrowsertesting-plugin.git</developerConnection>
     <url>http://github.com/jenkinsci/crossbrowsertesting-plugin</url>
-    <tag>crossbrowsertesting-0.1</tag>
+    <tag>crossbrowsertesting</tag>
   </scm>
   <repositories>
     <repository>
@@ -50,7 +50,6 @@
   </pluginRepositories>
   <!-- Make sure the version has the new point release and has "-SNAPSHOT"  -->
   <version>0.5-SNAPSHOT</version>
-  <description>This plugin integrates you with CrossBrowserTesting.com.</description>
   <dependencies>
   	<dependency>
   		<groupId>org.json</groupId>
@@ -73,4 +72,6 @@
       </plugin>
     </plugins>
   </build>
+  <description>This plugin integrates users with Selenium Testing on &lt;a href=&quot;http://crossbrowsertesting.com&quot;&gt;CrossBrowserTesting.com&lt;/a&gt; CrossBrowserTesting.com provides cross browser testing on Windows, Macs, and real iPhones, iPads, and Android Phones and Tablets.
+</description>
 </project>
