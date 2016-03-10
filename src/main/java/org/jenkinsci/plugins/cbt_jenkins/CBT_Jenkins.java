@@ -36,6 +36,8 @@ public class CBT_Jenkins extends Builder implements Serializable, SimpleBuildSte
     // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
     @DataBoundConstructor
     public CBT_Jenkins(String browser, String operatingSystem, String resolution) {
+    	username = getDescriptor().getUsername();
+    	apikey = getDescriptor().getApikey();
         Configuration c = browserList.getConfig(operatingSystem);
         operatingSystemApiName = c.getApiName();
     	browserApiName = c.getBrowsersApiName(browser);
@@ -115,11 +117,18 @@ public class CBT_Jenkins extends Builder implements Serializable, SimpleBuildSte
 
     @Extension // This indicates to Jenkins that this is an implementation of an extension point.
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
-        
+        private String cbtUsername = "";
+        private String cbtApikey = "";
     	public DescriptorImpl() {
         	browserList = new BrowserList();
             load();
         }
+    	public String getUsername() {
+    		return cbtUsername;
+    	}
+    	public String getApikey() {
+    		return cbtApikey;
+    	}
         /**
          * Performs on-the-fly validation of the form field 'name'.
          *
@@ -183,11 +192,10 @@ public class CBT_Jenkins extends Builder implements Serializable, SimpleBuildSte
             // set that to properties and call save().
             // ^Can also use req.bindJSON(this, formData);
             //  (easier when there are many fields; need set* methods for this, like setUseFrench)
+        	cbtUsername = formData.getString("username");
+        	cbtApikey = formData.getString("apikey");
             save();
-            username = formData.getString("username");
-            apikey = formData.getString("apikey");
-            return super.configure(req,formData);
-            
+            return super.configure(req,formData);            
         }
     }
 }
