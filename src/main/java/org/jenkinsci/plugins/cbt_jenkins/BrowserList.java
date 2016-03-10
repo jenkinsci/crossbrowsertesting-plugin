@@ -89,6 +89,7 @@ public class BrowserList {
 class InfoPrototype {
 	/*
 	 * Almost all of the JSON Objects have a "name" and "api_name"
+	 * Doing it this way just because I'm lazy
 	 */
 	private String name;
 	private String api_name;
