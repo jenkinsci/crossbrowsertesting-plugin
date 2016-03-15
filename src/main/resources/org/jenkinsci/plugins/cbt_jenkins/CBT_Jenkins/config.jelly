@@ -19,13 +19,13 @@
     <f:textbox />
   </f:entry>
   -->
-  <f:entry title="Operating System" field="operatingSystem">
+  <f:entry title="Operating System" field="operatingSystem" >
    <f:select />
   </f:entry>
   <f:entry title="Browser" field="browser">
    <f:select />
   </f:entry>
-  <f:entry title="Screen Resolution" field="resolution">
+  <f:entry title="Screen Resolution" field="resolution" >
     <f:select />
   </f:entry>
 
