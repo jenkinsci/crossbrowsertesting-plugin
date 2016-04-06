@@ -57,6 +57,16 @@
   		<artifactId>json</artifactId>
   		<version>20151123</version>
   	</dependency>
+  	<dependency>
+  		<groupId>org.codehaus.groovy.modules.http-builder</groupId>
+  		<artifactId>http-builder</artifactId>
+  		<version>0.7.1</version>
+  	</dependency>
+  	<dependency>
+		<groupId>commons-codec</groupId>
+		<artifactId>commons-codec</artifactId>
+		<version>1.9</version>
+	</dependency>
   </dependencies>
   <organization>
   	<name>CrossBrowserTesting.com</name>

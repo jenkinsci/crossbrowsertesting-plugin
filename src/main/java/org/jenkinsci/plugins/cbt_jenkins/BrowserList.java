@@ -1,10 +1,6 @@
 package org.jenkinsci.plugins.cbt_jenkins;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 
 import org.json.JSONArray;
@@ -12,14 +8,14 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class BrowserList {
-	
-	private String requestURL = "http://crossbrowsertesting.com/api/v3/selenium/browsers";
+
+	private Request req = new Request("selenium");
 	public ArrayList<Configuration> configurations = new ArrayList<Configuration>();
 	
 	public BrowserList() {
 		String json="";
 		try {
-			json = get(requestURL);
+			json = req.get("/browsers");
 		}catch (IOException ioe) {}
 		try {
 			parseJSON(json);
@@ -54,32 +50,11 @@ public class BrowserList {
 			configurations.add(configuration);
 		}
 	}
-	private String get(String urlStr) throws IOException{
-		/*
-		 * Get request
-		 * returns JSON as a string
-		 */
-		URL url = new URL(urlStr);
-		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-		if (conn.getResponseCode() != 200) {
-			throw new IOException(conn.getResponseMessage());
-		}
-		// Buffer the result into a string
-		BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-		StringBuilder sb = new StringBuilder();
-		String line;
-		while ((line = rd.readLine()) != null) {
-			sb.append(line);
-		}
-		rd.close();
-		conn.disconnect();
-		return sb.toString();
-	}
 	public Configuration getConfig(String configName) {
 		Configuration c = new Configuration("","");
 		
     	for (int i=0;i<configurations.size();i++) {
-    		if (configName.equals(configurations.get(i).getName())) {
+    		if (configName.equals(configurations.get(i).getApiName())) {
                 c = configurations.get(i);
     		}
     	}
