@@ -150,7 +150,7 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
 					if (l > 0) {
 					    extension = fileName.substring(l+1);
 					}
-					// figure out how to launch it
+					// figure out how to launch it					
 					if (extension.equals("py") || extension.equals("rb") || extension.equals("jar") || extension.equals("js")) { //executes with full filename
 						if (extension.equals("py")) { //python
 							cmd.add("python");
@@ -163,10 +163,11 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
 							cmd.add("node");
 						}
 						cmd.add(executable.getName());
-					}else if (extension.equals("exe")) { //executes with only the basename
-						//csharp
-						cmd.add(executable.getBaseName());
+					} else if (extension.equals("exe")) { //exe csharp
+						FilePath csharpScriptPath = new FilePath(workspace, executable.getName()); 
+						cmd.add(csharpScriptPath.toString());
 					}
+					
 					lp.cmds(cmd);
 					listener.getLogger().println("\nErrors/Output");
 					listener.getLogger().println("-------------");
@@ -175,10 +176,6 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
 			    	lp.join(); //run the tests
 				}
 	    	}
-//	    	try {
-//	    	}catch(NullPointerException npe) {
-	    		//listener.getLogger().println("ERROR: No selenium scripts to execute.");
-//	    	}
     	}
 		return new Environment(){};
     }
