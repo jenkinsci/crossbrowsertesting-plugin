@@ -1,24 +1,24 @@
-##CrossBrowserTesting.com Jenkins Plugin
-#### This plugin integrates Jenkins users with Selenium Testing on CrossBrowserTesting.com. CrossBrowserTesting.com provides cross browser testing of websites, webpages, and web applications on Windows, Macs, and real iPhones, iPads, and Android Phones and Tablets.
+#CrossBrowserTesting.com Jenkins Plugin
+#### This plugin integrates Jenkins users with Selenium Testing and Screenshot Testing on CrossBrowserTesting.com. CrossBrowserTesting.com provides cross browser testing of websites, webpages, and web applications on Windows, Macs, and real iPhones, iPads, and Android Phones and Tablets.
 Wiki: https://wiki.jenkins-ci.org/display/JENKINS/CrossBrowserTesting+Plugin
 
-#### Installation
+### Installation
 
-###### [via the interface][jenkins_install_interface]
+##### [via the interface][jenkins_install_interface]
 1. Go to your installation's management screen.
 2. Click **Manage Plugins**.
 3. Click the **Available** tab.
 4. Find the **CrossBrowserTesting.com Plugin** and select the checkbox.
 5. then click either **Install without restart** or **Download now and install after restart**.
 
-###### [by hand][jenkins_install_byhand] (*not recommended*)
+##### [by hand][jenkins_install_byhand] (*not recommended*)
 1. Download [CrossBrowserTesting.hpi][latest_version].
 2. Save the downloaded .hpi file into your `$JENKINS_HOME/plugins` directory.
 3. Restart Jenkins.
 
-#### Configuration
+### Configuration
 
-###### Environment Variables
+##### Environment Variables
 The CrossBrowserTesting.com Jenkins Plugin passes your build step information to your Selenium scripts as environment variables. The exact syntax will vary depending on your scripting language.
 
 | Variable | Description|
@@ -33,14 +33,23 @@ The CrossBrowserTesting.com Jenkins Plugin passes your build step information to
 
 See the examples directory for a few language specific sample scripts.
 
-###### Saving Your CrossBrowserTesting.com API Credentials
+##### Saving Your CrossBrowserTesting.com API Credentials
 1. Go to your installation's management screen.
 2. Click **Configure System**.
 3. Find the section labeled **CrossBrowserTesting.com**.
 4. Enter your CrossBrowserTesting.com Username and API Key information. You can find your api key [here][cbt_apidocs] (must be logged in)
 5. Click **Save**.
 
-###### Build Step
+##### Build/Configure
+###### Version \>= 0.11 Build Environment
+1. Configure your Jenkins Project.
+2. In *Build Environment*, Check the box next to *CrossBrowserTesting.com*
+3. For Screenshot Tests: Pick a BrowserList and enter a URL (you must have you API credentials saved for the browserlist to populate)
+4. For Selenium Tests: Add the **Operating System**, **Browser**, and **Screen Resolution** that you want to run a Selenium Test on. *You can add multiple configurations by clicking **Add Selenium Tests** *
+5. Click **Save**
+6. Click **Build Now** to build the project. All files in the project's workspace will be ran (make sure the selenium scripts are executable). Output from the selenium script will be displayed in **Console Output** for the build.
+
+###### Version <= 0.10 Build Step
 1. Configure your Jenkins Project.
 2. Click **Add build step**.
 3. Click **CrossBrowserTesting.com**.
@@ -48,14 +57,14 @@ See the examples directory for a few language specific sample scripts.
 5. Click **Save**
 6. Click **Build Now** to build the project. All files in the project's workspace will be ran (make sure the selenium scripts are executable). Output from the selenium script will be displayed in **Console Output** for the build.
 
-#### Building the plugin for testing/development
+### Building the plugin for testing/development
 
-###### Requirements:
+##### Requirements:
 - [JDK][java] &#8805; 8
 - [Maven][maven] &#8805; 3
 
 <pre>mvn hpi:run</pre>
-###### To release
+##### To release
 Make sure the pom.xml file's version has the new point release and has **-SNAPSHOT**
 <pre> mvn release:prepare release:perform </pre>
 
