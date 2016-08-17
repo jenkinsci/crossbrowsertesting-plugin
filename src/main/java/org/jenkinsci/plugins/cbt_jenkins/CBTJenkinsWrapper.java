@@ -30,6 +30,7 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import net.sf.json.JSONObject;
 
+
 //public class CBT_Jenkins extends Builder implements Serializable, SimpleBuildStep {
 
 public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
@@ -37,7 +38,9 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
 	private static String username;
 	private static String apikey;
 	private static Screenshots screenshotBrowserLists;
-	private static BrowserList seleniumBrowserList = new BrowserList();;
+	private static BrowserList seleniumBrowserList = new BrowserList();
+	private static LocalTunnel tunnel;
+	private static boolean useLocalTunnel;
 
 	/*
     private final String browserApiName;
@@ -53,23 +56,17 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
 
     
     @DataBoundConstructor
-    public CBTJenkinsWrapper(String screenshotBrowserList, String screenshotUrl, List<JSONObject> seleniumTests) {
+    public CBTJenkinsWrapper(String screenshotBrowserList, String screenshotUrl, List<JSONObject> seleniumTests, boolean useLocalTunnel) {
     	username = getDescriptor().getUsername();
     	apikey = getDescriptor().getApikey();
     	
     	this.screenshotBrowserList = screenshotBrowserList;
     	this.screenshotUrl = screenshotUrl;
     	this.seleniumTests = seleniumTests;
+    	this.useLocalTunnel = useLocalTunnel;
+    	
+    	tunnel = new LocalTunnel(username, apikey);
     }
-    
-    /*
-    public List<JSONObject> searchReplace;
-    @DataBoundConstructor
-    public CBTJenkinsWrapper(List<JSONObject> searchReplace) {
-    	System.out.println(searchReplace);
-    	this.searchReplace = searchReplace;
-    }
-    */
     
     public String getScreenshotBrowserList() {
     	return this.screenshotBrowserList;
@@ -80,14 +77,37 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
     public List<JSONObject> getSeleniumTests() {
     	return this.seleniumTests;
     }
+    public boolean getUseLocalTunnel() {
+    	return this.useLocalTunnel;
+    }
 
     /*
      *  Main function
      */
     @Override
     public Environment setUp(final AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
+    	FilePath workspace = build.getWorkspace();
     	// This is where you 'build' the project.
-
+    	if (useLocalTunnel) {
+    		listener.getLogger().println("Going to use tunnel");
+    		if (!tunnel.isTunnelRunning) {
+    			listener.getLogger().println("Tunnel is currently not running. Need to start one.");
+    			tunnel.start(workspace);
+    			listener.getLogger().println("Waiting for the tunnel to establish a connection.");
+    			for (int i=1 ; i<15 && !tunnel.isTunnelRunning ; i++) {
+    				//will check every 2 seconds for upto 30 to see if the tunnel connected
+    				Thread.sleep(2000);
+    				tunnel.queryTunnel();
+    			}
+    			if (tunnel.isTunnelRunning) {
+    				listener.getLogger().println("Tunnel is now connected.");
+    			}else {
+    				throw new Error("The local tunnel did not connect within 30 seconds");
+    			}
+    		}else {
+    			listener.getLogger().println("Tunnel is already running. No need to start a new one.");
+    		}
+    	}
     	// Do the screenshot tests
     	if (screenshotBrowserList != null && screenshotUrl != null && !screenshotUrl.equals("") && !screenshotBrowserList.equals("")) {
 	    	HashMap<String, String> screenshotResults = screenshotBrowserLists.runScreenshotTest(screenshotBrowserList, screenshotUrl);
@@ -101,6 +121,7 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
 		    	}
 	    	}
     	}
+    	
     	// Do the selenium tests
     	if (!seleniumTests.isEmpty()) {
 	    	listener.getLogger().println("\n---------------------");
@@ -115,7 +136,7 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
     			String browserApiName = seTest.getString("browser");
     			String resolution = seTest.getString("resolution");
 	
-	    		FilePath workspace = build.getWorkspace();
+	    		workspace = build.getWorkspace();
 		    	
 		    	//really bad way to remove the build number from the name...
 		    	String buildname = build.getFullDisplayName().substring(0, build.getFullDisplayName().length()-(String.valueOf(build.getNumber()).length()+1));
@@ -137,47 +158,66 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
 		    		listener.getLogger().println(envvar.getKey() + ": "+ envvar.getValue());
 		    	}
 		    	launcher = launcher.decorateByEnv(env); //add them to the tasklauncher
-	
 				for (FilePath executable : workspace.list()) {
-			    	Launcher.ProcStarter lp = launcher.launch();
-			    	lp.pwd(workspace); //set the working directory
-					ArgumentListBuilder cmd = new ArgumentListBuilder();
 					String fileName = executable.getName();
-	
 					//Extract extension
 					String extension = "";
 					int l = fileName.lastIndexOf('.');
 					if (l > 0) {
 					    extension = fileName.substring(l+1);
 					}
-					// figure out how to launch it					
-					if (extension.equals("py") || extension.equals("rb") || extension.equals("jar") || extension.equals("js")) { //executes with full filename
-						if (extension.equals("py")) { //python
-							cmd.add("python");
-						}else if (extension.equals("rb")) { //ruby
-							cmd.add("ruby");
-						}else if (extension.equals("jar")) { //java jar
-							cmd.add("java");
-							cmd.add("-jar");
-						}else if (extension.equals("js")) { //node javascript
-							cmd.add("node");
+					if (extension.equals("py") || extension.equals("rb") || extension.equals("jar") || extension.equals("js") || (extension.equals("exe"))) { // supported extensions
+				    	Launcher.ProcStarter lp = launcher.launch();
+				    	lp.pwd(workspace); //set the working directory
+						ArgumentListBuilder cmd = new ArgumentListBuilder();
+	
+						// figure out how to launch it					
+						if (extension.equals("py") || extension.equals("rb") || extension.equals("jar") || extension.equals("js")) { //executes with full filename
+							if (extension.equals("py")) { //python
+								cmd.add("python");
+							}else if (extension.equals("rb")) { //ruby
+								cmd.add("ruby");
+							}else if (extension.equals("jar")) { //java jar
+								cmd.add("java");
+								cmd.add("-jar");
+							}else if (extension.equals("js")) { //node javascript
+								cmd.add("node");
+							}
+							cmd.add(executable.getName());
+						} else if (extension.equals("exe")) { //exe csharp
+							FilePath csharpScriptPath = new FilePath(workspace, executable.getName()); 
+							cmd.add(csharpScriptPath.toString());
 						}
-						cmd.add(executable.getName());
-					} else if (extension.equals("exe")) { //exe csharp
-						FilePath csharpScriptPath = new FilePath(workspace, executable.getName()); 
-						cmd.add(csharpScriptPath.toString());
+						
+						lp.cmds(cmd);
+						listener.getLogger().println("\nErrors/Output");
+						listener.getLogger().println("-------------");
+						//write the output from the script to the console
+						lp.stdout(listener);
+				    	lp.join(); //run the tests
 					}
-					
-					lp.cmds(cmd);
-					listener.getLogger().println("\nErrors/Output");
-					listener.getLogger().println("-------------");
-					//write the output from the script to the console
-					lp.stdout(listener);
-			    	lp.join(); //run the tests
 				}
 	    	}
     	}
-		return new Environment(){};
+		return new Environment(){
+			public boolean tearDown(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException {
+				if (tunnel.jenkinsStartedTheTunnel) {
+					tunnel.stop();
+	    			for (int i=1 ; i<15 && tunnel.isTunnelRunning; i++) {
+	    				//will check every 2 seconds for upto 30 to see if the tunnel disconnected
+	    				Thread.sleep(2000);
+	    				tunnel.queryTunnel();
+	    			}
+	    			if (!tunnel.isTunnelRunning) {
+	    				listener.getLogger().println("Tunnel is now disconnected.");
+	    			}else {
+	    				listener.getLogger().println("[WARNING]: Failed disconnecting the local tunnel");
+	    			}
+				}
+				return true;
+			}
+
+		};
     }
 
     // Overridden for better type safety.

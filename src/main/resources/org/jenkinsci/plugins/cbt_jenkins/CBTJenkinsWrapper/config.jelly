@@ -42,24 +42,8 @@
   		</table>
  	</f:repeatable>
  </f:entry>
- <!--
-<f:entry>   
-        <f:repeatable var="searchReplace" items="${instance.searchReplace}" noAddButton="false">
-            <table width="100%">
-                    <f:entry title="Search text">
-                    <f:textbox field="searchtxt" value="${searchReplace.searchtxt}"/>
-                    </f:entry>
-                    <f:entry title="Replace text">
-                    <f:textbox field="replacetxt" value="${searchReplace.replacetxt}"/>
-                    </f:entry>
-                    <f:entry>
-                    <div align="right" class="repeatable-delete show-if-only" style="margin-left: 1em;">
-                        <f:repeatableDeleteButton value="${%Delete searchreplace}" /><br/>
-                    </div>
-                    </f:entry>         
-            </table>
-        </f:repeatable>            
-</f:entry>
--->
+  <f:entry title="Use Local Tunnel" description="Runs the nodejs cbt_tunnels module" help="localtunnel.html" field="useLocalTunnel">
+    <f:checkbox value="${instance.useLocalTunnel()}"/>
+  </f:entry>
   </f:block>
 </j:jelly>

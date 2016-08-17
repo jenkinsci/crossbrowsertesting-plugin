@@ -97,4 +97,37 @@ public class Request {
 		conn.disconnect();
 		return sb.toString();
 	}
+	public String delete(String urlStr) throws IOException {
+		/*
+		 * POST request
+		 * returns JSON as a string
+		 */
+		String urlParameters = "";
+		URL url = new URL(requestURL + urlStr);
+		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+		conn.setRequestMethod("DELETE");
+		if (username != null && password != null) {
+			String userpassEncoding = Base64.encodeBase64String((username+":"+password).getBytes());
+			conn.setRequestProperty("Authorization", "Basic " + userpassEncoding);
+		}
+		conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+		conn.setDoOutput(true);
+		DataOutputStream wr = new DataOutputStream(conn.getOutputStream());
+		wr.writeBytes(urlParameters);
+		wr.flush();
+		wr.close();
+		if (conn.getResponseCode() != 200) {
+			throw new IOException(conn.getResponseMessage());
+		}
+		// Buffer the result into a string
+		BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+		StringBuilder sb = new StringBuilder();
+		String line;
+		while ((line = rd.readLine()) != null) {
+			sb.append(line);
+		}
+		rd.close();
+		conn.disconnect();
+		return sb.toString();
+	}
 }

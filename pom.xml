@@ -31,8 +31,8 @@
   </developers>
   <!-- Assuming you want to host on @jenkinsci: -->
   <scm>
-    <connection>scm:git:git://github.com/jenkinsci/crossbrowsertesting-plugin.git</connection>
-    <developerConnection>scm:git:git@github.com:jenkinsci/crossbrowsertesting-plugin.git</developerConnection>
+    <connection>scm:git:ssh://github.com/jenkinsci/crossbrowsertesting-plugin.git</connection>
+    <developerConnection>scm:git:ssh@github.com:jenkinsci/crossbrowsertesting-plugin.git</developerConnection>
     <url>http://github.com/jenkinsci/crossbrowsertesting-plugin</url>
     <tag>crossbrowsertesting</tag>
   </scm>
