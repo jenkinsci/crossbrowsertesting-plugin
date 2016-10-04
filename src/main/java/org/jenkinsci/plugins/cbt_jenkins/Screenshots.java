@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 public class Screenshots {
@@ -13,6 +14,7 @@ public class Screenshots {
 	String username, apikey;
 	List<String> browserLists;
 	Request req;
+	boolean isTestRunning;
 	
 	public Screenshots(String username, String apikey) {
 		this.username = username;
@@ -40,7 +42,7 @@ public class Screenshots {
 	}
 	public HashMap<String, String> runScreenshotTest(String selectedBrowserList, String url) {
 		String json = "";
-		HashMap params = new HashMap();
+		HashMap<String, String> params = new HashMap<String, String>();
 		params.put("url", url);
 		params.put("browser_list_name", selectedBrowserList);
 		try {
@@ -53,17 +55,28 @@ public class Screenshots {
 	}
 	private HashMap<String, String> parseResults(String json) {
 		HashMap<String, String> results = new HashMap<String, String>();
-		JSONObject screenshotResults = new JSONObject(json);
-		JSONArray screenshotVersions = screenshotResults.getJSONArray("versions");
-		JSONObject latestScreenshotVersion = screenshotVersions.getJSONObject(screenshotVersions.length()-1);
-		
-		results.put("screenshot_test_id", Integer.toString(screenshotResults.getInt("screenshot_test_id")));
-		results.put("url", screenshotResults.getString("url"));
-		results.put("version_id", Integer.toString(latestScreenshotVersion.getInt("version_id")));
-		results.put("download_results_zip_public_url", latestScreenshotVersion.getString("download_results_zip_public_url"));
-		results.put("show_results_public_url", latestScreenshotVersion.getString("show_results_public_url"));
+		try {
+			JSONObject screenshotResults = new JSONObject(json);
+			JSONArray screenshotVersions = screenshotResults.getJSONArray("versions");
+			JSONObject latestScreenshotVersion = screenshotVersions.getJSONObject(screenshotVersions.length()-1);
+			
+			results.put("screenshot_test_id", Integer.toString(screenshotResults.getInt("screenshot_test_id")));
+			results.put("url", screenshotResults.getString("url"));
+			results.put("version_id", Integer.toString(latestScreenshotVersion.getInt("version_id")));
+			results.put("download_results_zip_public_url", latestScreenshotVersion.getString("download_results_zip_public_url"));
+			results.put("show_results_public_url", latestScreenshotVersion.getString("show_results_public_url"));
+			results.put("active", Boolean.toString(latestScreenshotVersion.getBoolean("active")));
+			isTestRunning = Boolean.parseBoolean(results.get("active"));
+		}catch (Exception e) {
+			results.put("error", e.toString());
+			results.put("json", json);
+		}
 		
 		return results;
+	}
+	public void queryTest(String screenshotsTestId) throws IOException {
+		String json = req.get("/"+screenshotsTestId);
+		HashMap<String, String> results = parseResults(json);
 	}
 	
 }

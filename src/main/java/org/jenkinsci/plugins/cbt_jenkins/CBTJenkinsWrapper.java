@@ -21,10 +21,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
-import hudson.tasks.BuildStep;
-import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildWrapper;
-import hudson.tasks.Builder;
 import hudson.util.ArgumentListBuilder;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
@@ -38,7 +35,7 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
 	private static String username;
 	private static String apikey;
 	private static Screenshots screenshotBrowserLists;
-	private static BrowserList seleniumBrowserList = new BrowserList();
+	private static Selenium seleniumBrowserList = new Selenium();
 	private static LocalTunnel tunnel;
 	private static boolean useLocalTunnel;
 
@@ -59,6 +56,8 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
     public CBTJenkinsWrapper(String screenshotBrowserList, String screenshotUrl, List<JSONObject> seleniumTests, boolean useLocalTunnel) {
     	username = getDescriptor().getUsername();
     	apikey = getDescriptor().getApikey();
+    	
+    	seleniumBrowserList = new Selenium(username, apikey); // repopulate using credentials
     	
     	this.screenshotBrowserList = screenshotBrowserList;
     	this.screenshotUrl = screenshotUrl;
@@ -84,8 +83,11 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
     /*
      *  Main function
      */
-    @Override
+    @SuppressWarnings("rawtypes")
+	@Override
     public Environment setUp(final AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
+
+    	listener.getLogger().println(build.getFullDisplayName());
     	FilePath workspace = build.getWorkspace();
     	// This is where you 'build' the project.
     	if (useLocalTunnel) {
@@ -110,20 +112,26 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
     	}
     	// Do the screenshot tests
     	if (screenshotBrowserList != null && screenshotUrl != null && !screenshotUrl.equals("") && !screenshotBrowserList.equals("")) {
-	    	HashMap<String, String> screenshotResults = screenshotBrowserLists.runScreenshotTest(screenshotBrowserList, screenshotUrl);
-	    	if (!screenshotResults.isEmpty()) {
-		    	listener.getLogger().println("\n-----------------------");
-		    	listener.getLogger().println("SCREENSHOT TEST RESULTS");
-		    	listener.getLogger().println("-----------------------");
-		    	
-		    	for (Map.Entry<String, String> screenshotResultsEntry : screenshotResults.entrySet()) {
-		    		listener.getLogger().println(screenshotResultsEntry.getKey() + ": "+ screenshotResultsEntry.getValue());
-		    	}
+	    	HashMap<String, String> screenshotInfo = screenshotBrowserLists.runScreenshotTest(screenshotBrowserList, screenshotUrl);
+	    	if (screenshotInfo.containsKey("error")) {
+	    		listener.getLogger().println("[ERROR] 500 error returned for Screenshot Test");
+	    	} else {
+	    		CBTJenkinsBuildAction ssBuildAction = new CBTJenkinsBuildAction("screenshots", screenshotInfo, build);
+	    		build.addAction(ssBuildAction);
+	    		if (!screenshotInfo.isEmpty()) {
+	    			listener.getLogger().println("\n-----------------------");
+	    			listener.getLogger().println("SCREENSHOT TEST RESULTS");
+	    			listener.getLogger().println("-----------------------");
+	    		}
+			    for (Map.Entry<String, String> screenshotResultsEntry : screenshotInfo.entrySet()) {
+			    	listener.getLogger().println(screenshotResultsEntry.getKey() + ": "+ screenshotResultsEntry.getValue());
+			    }
 	    	}
+
     	}
     	
     	// Do the selenium tests
-    	if (!seleniumTests.isEmpty()) {
+    	if (seleniumTests!=null && !seleniumTests.isEmpty()) {
 	    	listener.getLogger().println("\n---------------------");
 	    	listener.getLogger().println("SELENIUM TEST RESULTS");
 	    	listener.getLogger().println("---------------------");
@@ -139,14 +147,16 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
 	    		workspace = build.getWorkspace();
 		    	
 		    	//really bad way to remove the build number from the name...
-		    	String buildname = build.getFullDisplayName().substring(0, build.getFullDisplayName().length()-(String.valueOf(build.getNumber()).length()+1));
-		
+	    		String buildname = build.getEnvironment().get("JOB_NAME");
+	    		String buildnumber = build.getEnvironment().get("BUILD_NUMBER");
+		    	//String buildname = build.getFullDisplayName().substring(0, build.getFullDisplayName().length()-(String.valueOf(build.getNumber()).length()+1));
+	    		//String buildnumber = String.valueOf(build.getNumber());
 		    	// Set the environment variables
 		    	EnvVars env = new EnvVars();
 		    	env.put("CBT_USERNAME", username);
 		    	env.put("CBT_APIKEY", apikey);
 		    	env.put("CBT_BUILD_NAME", buildname);
-		    	env.put("CBT_BUILD_NUMBER", String.valueOf(build.getNumber()));
+		    	env.put("CBT_BUILD_NUMBER", buildnumber);
 		    	env.put("CBT_OPERATING_SYSTEM", operatingSystemApiName);
 		    	env.put("CBT_BROWSER", browserApiName);
 		    	env.put("CBT_RESOLUTION", resolution);
@@ -166,13 +176,13 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
 					if (l > 0) {
 					    extension = fileName.substring(l+1);
 					}
-					if (extension.equals("py") || extension.equals("rb") || extension.equals("jar") || extension.equals("js") || (extension.equals("exe"))) { // supported extensions
+					if (extension.equals("py") || extension.equals("rb") || extension.equals("jar") || extension.equals("js") || (extension.equals("exe")) || extension.equals("sh") || extension.equals("bat")) { // supported extensions
 				    	Launcher.ProcStarter lp = launcher.launch();
 				    	lp.pwd(workspace); //set the working directory
 						ArgumentListBuilder cmd = new ArgumentListBuilder();
 	
 						// figure out how to launch it					
-						if (extension.equals("py") || extension.equals("rb") || extension.equals("jar") || extension.equals("js")) { //executes with full filename
+						if (extension.equals("py") || extension.equals("rb") || extension.equals("jar") || extension.equals("js") || extension.equals("sh")) { //executes with full filename
 							if (extension.equals("py")) { //python
 								cmd.add("python");
 							}else if (extension.equals("rb")) { //ruby
@@ -182,9 +192,11 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
 								cmd.add("-jar");
 							}else if (extension.equals("js")) { //node javascript
 								cmd.add("node");
+							}else if (extension.equals("sh")) { // custom shell script
+								cmd.add("sh");
 							}
 							cmd.add(executable.getName());
-						} else if (extension.equals("exe")) { //exe csharp
+						} else if (extension.equals("exe") || extension.equals("bat")) { //exe csharp
 							FilePath csharpScriptPath = new FilePath(workspace, executable.getName()); 
 							cmd.add(csharpScriptPath.toString());
 						}
@@ -195,22 +207,48 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
 						//write the output from the script to the console
 						lp.stdout(listener);
 				    	lp.join(); //run the tests
+				    	CBTJenkinsBuildAction seBuildAction = new CBTJenkinsBuildAction("selenium", env, build); 
+				    	build.addAction(seBuildAction);
 					}
 				}
 	    	}
     	}
-		return new Environment(){
+		return new Environment() {
 			public boolean tearDown(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException {
+				String testId = "0";
+				for (CBTJenkinsBuildAction test : build.getActions(CBTJenkinsBuildAction.class)) {
+					if (test.getTestType().equals("selenium")) {
+						EnvVars env = test.environmentVariables;
+						String[] testInfo = seleniumBrowserList.getSeleniumTestInfo(env.get("CBT_BUILD_NAME"), env.get("CBT_BUILD_NUMBER"), env.get("CBT_BROWSER"), env.get("CBT_OPERATING_SYSTEM"), env.get("CBT_RESOLUTION"));
+						
+						String seleniumTestId = testInfo[0];
+						String publicUrl = testInfo[1];
+						
+						test.setTestId(seleniumTestId);
+						test.setTestPublicUrl(publicUrl);
+					} else if (test.getTestType().equals("screenshots")) {
+						testId = test.getTestId();
+						
+					}
+				}
 				if (tunnel.jenkinsStartedTheTunnel) {
+					if (screenshotBrowserList != null && screenshotUrl != null && !screenshotUrl.equals("") && !screenshotBrowserList.equals("") && !testId.equals("0")) {
+						// we need to poll the screenshot test before closing the tunnel
+						//check if can use actions if when view is not enabled
+						while(screenshotBrowserLists.isTestRunning) {
+							Thread.sleep(30000);
+							screenshotBrowserLists.queryTest(testId);
+						}
+					}
 					tunnel.stop();
-	    			for (int i=1 ; i<15 && tunnel.isTunnelRunning; i++) {
-	    				//will check every 2 seconds for upto 30 to see if the tunnel disconnected
-	    				Thread.sleep(2000);
+	    			for (int i=1 ; i<4 && tunnel.isTunnelRunning; i++) {
+	    				//will check every 15 seconds for up to 1 minute to see if the tunnel disconnected
+	    				Thread.sleep(15000);
 	    				tunnel.queryTunnel();
 	    			}
 	    			if (!tunnel.isTunnelRunning) {
 	    				listener.getLogger().println("Tunnel is now disconnected.");
-	    			}else {
+	    			} else {
 	    				listener.getLogger().println("[WARNING]: Failed disconnecting the local tunnel");
 	    			}
 				}
@@ -242,6 +280,11 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
     	}
     	public String getApikey() {
     		return cbtApikey;
+    	}
+    	public String getVersion() {
+    		String fullVersion = getPlugin().getVersion();
+    		String stuffToIgnore = fullVersion.split("^\\d+[\\.]?\\d*")[1];
+    		return fullVersion.substring(0, fullVersion.indexOf(stuffToIgnore));
     	}
 
         /**
