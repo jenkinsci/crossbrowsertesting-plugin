@@ -223,12 +223,14 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
 						
 						String seleniumTestId = testInfo[0];
 						String publicUrl = testInfo[1];
-						
+						String jenkinsVersion = build.getHudsonVersion();
+						String pluginVersion = getDescriptor().getVersion();
+
 						test.setTestId(seleniumTestId);
 						test.setTestPublicUrl(publicUrl);
+						seleniumBrowserList.updateContributer(seleniumTestId, jenkinsVersion, pluginVersion);
 					} else if (test.getTestType().equals("screenshots")) {
-						testId = test.getTestId();
-						
+						testId = test.getTestId();	
 					}
 				}
 				if (tunnel.jenkinsStartedTheTunnel) {

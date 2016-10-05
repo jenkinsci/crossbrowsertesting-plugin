@@ -50,7 +50,7 @@ public class LocalTunnel {
 	}
 	public void stop() throws IOException, InterruptedException {
 		queryTunnel();
-		String json = req.delete("/"+Integer.toString(tunnelID));
+		String json = req.delete("/"+Integer.toString(tunnelID), null);
 		tunnelProcess.destroy();
 	}
 }

@@ -3,6 +3,7 @@ package org.jenkinsci.plugins.cbt_jenkins;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -115,26 +116,34 @@ public class Selenium {
 		return testInfo;
 		
 	}
-	private String apiSetAction(int seleniumTestId, String action, String value) throws IOException {
+	private String apiSetAction(String seleniumTestId, String action, String param, String value) throws IOException {
+		/*
+		 * param and value are the additional parameters for actions
+		 * 
+		 * example: to set the score as a fail...
+		 * action="set_score", param="score", value="fail"
+		 */
 		HashMap<String, String> params = new HashMap<String, String>();
 		params.put("action", action);
-		return req.put("/"+Integer.toString(seleniumTestId), params);
+		params.put(param, value);
+		return req.put("/"+seleniumTestId, params);
 	}
-	public void markPassOrFail(int seleniumTestId, boolean didPass) throws IOException{
+	public void markPassOrFail(String seleniumTestId, boolean pass) throws IOException{
 		/*
 		 * true = pass, false = fail
 		 */
-		if (didPass) {
-			apiSetAction(seleniumTestId, "set_score", "pass");
+		if (pass) {
+			apiSetAction(seleniumTestId, "set_score", "score", "pass");
 		} else {
-			apiSetAction(seleniumTestId, "set_score", "fail");
-		}		
+			apiSetAction(seleniumTestId, "set_score", "score", "fail");
+		}	
 	}
-	public void updateContributer(int seleniumTestId, String jenkinsVersion, String pluginVersion) throws IOException {
+	public void updateContributer(String seleniumTestId, String jenkinsVersion, String pluginVersion) throws IOException {
 		/*
 		 * contributer looks like "jenkins1.5|v0.21"
 		 */
-		apiSetAction(seleniumTestId, "set_contributer", "jenkins"+jenkinsVersion+"|v"+pluginVersion);	
+		String contributer = "jenkins"+jenkinsVersion+"|v"+pluginVersion;
+		apiSetAction(seleniumTestId, "set_contributer", "contributer", contributer);	
 	}
 }
 

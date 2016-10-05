@@ -70,7 +70,55 @@ public class Request {
 		}
 		return get(urlStr);
 	}
-	public String post(String urlStr, Map<String, String> params) throws IOException {
+	private String doRequestWithFormParams(String method, String urlStr, Map<String, String> params) throws IOException {
+		/*
+		 * POST or Post request
+		 * returns JSON as a string
+		 */
+		String urlParameters = "";
+		if (params != null) {
+			int index = 1;
+	    	for (Map.Entry<String, String> entry : params.entrySet()) {
+	    		urlParameters += entry.getKey() +"=" + entry.getValue();
+	    		if (index < params.size()) {
+	    			urlParameters += "&";
+	    		}
+	    		index++;
+	    	}
+		}
+    	byte[] postData = urlParameters.getBytes(StandardCharsets.UTF_8);
+		URL url = new URL(requestURL + urlStr);
+		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+		conn.setRequestMethod(method);
+		if (username != null && password != null) {
+			String userpassEncoding = Base64.encodeBase64String((username+":"+password).getBytes());
+			conn.setRequestProperty("Authorization", "Basic " + userpassEncoding);
+		}
+		conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+		conn.setRequestProperty( "charset", "utf-8");
+		conn.setRequestProperty( "Content-Length", Integer.toString( postData.length ));
+		conn.setDoOutput(true);
+		conn.setUseCaches(false);
+		DataOutputStream wr = new DataOutputStream(conn.getOutputStream());
+		//wr.writeBytes(urlParameters);
+		wr.write(postData);
+		wr.flush();
+		wr.close();
+		if (conn.getResponseCode() != 200) {
+			throw new IOException(conn.getResponseMessage());
+		}
+		// Buffer the result into a string
+		BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+		StringBuilder sb = new StringBuilder();
+		String line;
+		while ((line = rd.readLine()) != null) {
+			sb.append(line);
+		}
+		rd.close();
+		conn.disconnect();
+		return sb.toString();
+	}
+	public String post1(String urlStr, Map<String, String> params) throws IOException {
 		/*
 		 * POST request
 		 * returns JSON as a string
@@ -116,78 +164,13 @@ public class Request {
 		conn.disconnect();
 		return sb.toString();
 	}
-	public String put(String urlStr, Map<String, String> params) throws IOException {
-		/*
-		 * POST request
-		 * returns JSON as a string
-		 */
-		String urlParameters = "";
-		int index = 1;
-    	for (Map.Entry<String, String> entry : params.entrySet()) {
-    		urlParameters += entry.getKey() +"=" + entry.getValue();
-    		if (index < params.size()) {
-    			urlParameters += "&";
-    		}
-    		index++;
-    	}
-		URL url = new URL(requestURL + urlStr);
-		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-		conn.setRequestMethod("PUT");
-		if (username != null && password != null) {
-			String userpassEncoding = Base64.encodeBase64String((username+":"+password).getBytes());
-			conn.setRequestProperty("Authorization", "Basic " + userpassEncoding);
-		}
-		conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-		conn.setDoOutput(true);
-		DataOutputStream wr = new DataOutputStream(conn.getOutputStream());
-		wr.writeBytes(urlParameters);
-		wr.flush();
-		wr.close();
-		if (conn.getResponseCode() != 200) {
-			throw new IOException(conn.getResponseMessage());
-		}
-		// Buffer the result into a string
-		BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-		StringBuilder sb = new StringBuilder();
-		String line;
-		while ((line = rd.readLine()) != null) {
-			sb.append(line);
-		}
-		rd.close();
-		conn.disconnect();
-		return sb.toString();
+	public String post(String urlStr, Map<String, String> params) throws IOException {
+		return doRequestWithFormParams("POST", urlStr, params);
 	}
-	public String delete(String urlStr) throws IOException {
-		/*
-		 * POST request
-		 * returns JSON as a string
-		 */
-		String urlParameters = "";
-		URL url = new URL(requestURL + urlStr);
-		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-		conn.setRequestMethod("DELETE");
-		if (username != null && password != null) {
-			String userpassEncoding = Base64.encodeBase64String((username+":"+password).getBytes());
-			conn.setRequestProperty("Authorization", "Basic " + userpassEncoding);
-		}
-		conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-		conn.setDoOutput(true);
-		DataOutputStream wr = new DataOutputStream(conn.getOutputStream());
-		wr.writeBytes(urlParameters);
-		wr.flush();
-		wr.close();
-		if (conn.getResponseCode() != 200) {
-			throw new IOException(conn.getResponseMessage());
-		}
-		// Buffer the result into a string
-		BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-		StringBuilder sb = new StringBuilder();
-		String line;
-		while ((line = rd.readLine()) != null) {
-			sb.append(line);
-		}
-		rd.close();
-		conn.disconnect();
-		return sb.toString();
+	public String put(String urlStr, Map<String, String> params) throws IOException {
+		return doRequestWithFormParams("PUT", urlStr, params);
+	}
+	public String delete(String urlStr, Map<String, String> params) throws IOException {
+		return doRequestWithFormParams("DELETE", urlStr, params);
 	}
 }
