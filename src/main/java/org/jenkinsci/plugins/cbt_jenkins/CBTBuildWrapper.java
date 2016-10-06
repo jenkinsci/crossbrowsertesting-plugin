@@ -38,6 +38,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 	private static Selenium seleniumBrowserList = new Selenium();
 	private static LocalTunnel tunnel;
 	private static boolean useLocalTunnel;
+	private static boolean useTestResults;
 	//private static String screenshotBrowserList;
 	//private static String screenshotUrl;
 	    
@@ -47,17 +48,19 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     // Fields in config.jelly must match the parameter names in the "DataBoundConstructor" 
     @DataBoundConstructor
     //public CBTBuildWrapper(String screenshotBrowserList, String screenshotUrl, List<JSONObject> seleniumTests, boolean useLocalTunnel) {
-    public CBTBuildWrapper(List<JSONObject> screenshotsTests, List<JSONObject> seleniumTests, boolean useLocalTunnel) {
+    public CBTBuildWrapper(List<JSONObject> screenshotsTests, List<JSONObject> seleniumTests, boolean useLocalTunnel, boolean useTestResults) {
     	username = getDescriptor().getUsername();
     	apikey = getDescriptor().getApikey();
     	
-    	seleniumBrowserList.setRequest(username, apikey); // repopulate using credentials
+    	seleniumBrowserList.setRequest(username, apikey); // add credentials to requests
     	
     	//this.screenshotBrowserList = screenshotBrowserList;
     	//this.screenshotUrl = screenshotUrl;
     	this.screenshotsTests = screenshotsTests;
     	this.seleniumTests = seleniumTests;
+    	
     	this.useLocalTunnel = useLocalTunnel;
+    	this.useTestResults = useTestResults;
     	
     	tunnel = new LocalTunnel(username, apikey);
     }
@@ -78,7 +81,10 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     public boolean getUseLocalTunnel() {
     	return this.useLocalTunnel;
     }
-
+    public boolean getUseTestResults() {
+    	return this.useTestResults;
+    }
+    
     /*
      *  Main function
      */
@@ -114,7 +120,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	/*
     	if (screenshotBrowserList != null && screenshotUrl != null && !screenshotUrl.equals("") && !screenshotBrowserList.equals("")) {
     	*/
-    	if (screenshotsTests!=null && !screenshotsTests.isEmpty()) {
+    	if (screenshotsTests != null && !screenshotsTests.isEmpty()) {
     		Iterator<JSONObject> screenshotsIterator = screenshotsTests.iterator();
     		while(screenshotsIterator.hasNext()) {
 	    		JSONObject ssTest = screenshotsIterator.next();
@@ -128,7 +134,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 		    	if (screenshotInfo.containsKey("error")) {
 		    		listener.getLogger().println("[ERROR] 500 error returned for Screenshot Test");
 		    	} else {
-		    		CBTJenkinsBuildAction ssBuildAction = new CBTJenkinsBuildAction("screenshots", screenshotInfo, build);
+		    		CBTJenkinsBuildAction ssBuildAction = new CBTJenkinsBuildAction("screenshots", screenshotInfo, useTestResults, build);
 		    		build.addAction(ssBuildAction);
 		    		if (!screenshotInfo.isEmpty()) {
 		    			listener.getLogger().println("\n-----------------------");
@@ -143,7 +149,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	}
     	
     	// Do the selenium tests
-    	if (seleniumTests!=null && !seleniumTests.isEmpty()) {
+    	if (seleniumTests != null && !seleniumTests.isEmpty()) {
 	    	listener.getLogger().println("\n---------------------");
 	    	listener.getLogger().println("SELENIUM TEST RESULTS");
 	    	listener.getLogger().println("---------------------");
@@ -219,7 +225,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 						//write the output from the script to the console
 						lp.stdout(listener);
 				    	lp.join(); //run the tests
-				    	CBTJenkinsBuildAction seBuildAction = new CBTJenkinsBuildAction("selenium", env, build); 
+				    	CBTJenkinsBuildAction seBuildAction = new CBTJenkinsBuildAction("selenium", env, useTestResults, build); 
 				    	build.addAction(seBuildAction);
 					}
 				}
