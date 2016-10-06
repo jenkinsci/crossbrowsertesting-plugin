@@ -30,7 +30,7 @@ import net.sf.json.JSONObject;
 
 //public class CBT_Jenkins extends Builder implements Serializable, SimpleBuildStep {
 
-public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
+public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 
 	private static String username;
 	private static String apikey;
@@ -38,43 +38,42 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
 	private static Selenium seleniumBrowserList = new Selenium();
 	private static LocalTunnel tunnel;
 	private static boolean useLocalTunnel;
-
-	/*
-    private final String browserApiName;
-    private final String operatingSystemApiName;
-    private final String resolution;
-    */
-	
-	private static String screenshotBrowserList;
-	private static String screenshotUrl;
+	//private static String screenshotBrowserList;
+	//private static String screenshotUrl;
 	    
     private List <JSONObject> seleniumTests;
-    // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
+    private List <JSONObject> screenshotsTests;
 
-    
+    // Fields in config.jelly must match the parameter names in the "DataBoundConstructor" 
     @DataBoundConstructor
-    public CBTJenkinsWrapper(String screenshotBrowserList, String screenshotUrl, List<JSONObject> seleniumTests, boolean useLocalTunnel) {
+    //public CBTBuildWrapper(String screenshotBrowserList, String screenshotUrl, List<JSONObject> seleniumTests, boolean useLocalTunnel) {
+    public CBTBuildWrapper(List<JSONObject> screenshotsTests, List<JSONObject> seleniumTests, boolean useLocalTunnel) {
     	username = getDescriptor().getUsername();
     	apikey = getDescriptor().getApikey();
     	
-    	seleniumBrowserList = new Selenium(username, apikey); // repopulate using credentials
+    	seleniumBrowserList.setRequest(username, apikey); // repopulate using credentials
     	
-    	this.screenshotBrowserList = screenshotBrowserList;
-    	this.screenshotUrl = screenshotUrl;
+    	//this.screenshotBrowserList = screenshotBrowserList;
+    	//this.screenshotUrl = screenshotUrl;
+    	this.screenshotsTests = screenshotsTests;
     	this.seleniumTests = seleniumTests;
     	this.useLocalTunnel = useLocalTunnel;
     	
     	tunnel = new LocalTunnel(username, apikey);
     }
-    
+    /*
     public String getScreenshotBrowserList() {
     	return this.screenshotBrowserList;
     }
     public String getScreenshotUrl() {
     	return this.screenshotUrl;
     }
+    */
     public List<JSONObject> getSeleniumTests() {
     	return this.seleniumTests;
+    }
+    public List<JSONObject> getScreenshotsTests() {
+    	return this.screenshotsTests;
     }
     public boolean getUseLocalTunnel() {
     	return this.useLocalTunnel;
@@ -110,24 +109,37 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
     			listener.getLogger().println("Tunnel is already running. No need to start a new one.");
     		}
     	}
+    	
     	// Do the screenshot tests
+    	/*
     	if (screenshotBrowserList != null && screenshotUrl != null && !screenshotUrl.equals("") && !screenshotBrowserList.equals("")) {
-	    	HashMap<String, String> screenshotInfo = screenshotBrowserLists.runScreenshotTest(screenshotBrowserList, screenshotUrl);
-	    	if (screenshotInfo.containsKey("error")) {
-	    		listener.getLogger().println("[ERROR] 500 error returned for Screenshot Test");
-	    	} else {
-	    		CBTJenkinsBuildAction ssBuildAction = new CBTJenkinsBuildAction("screenshots", screenshotInfo, build);
-	    		build.addAction(ssBuildAction);
-	    		if (!screenshotInfo.isEmpty()) {
-	    			listener.getLogger().println("\n-----------------------");
-	    			listener.getLogger().println("SCREENSHOT TEST RESULTS");
-	    			listener.getLogger().println("-----------------------");
-	    		}
-			    for (Map.Entry<String, String> screenshotResultsEntry : screenshotInfo.entrySet()) {
-			    	listener.getLogger().println(screenshotResultsEntry.getKey() + ": "+ screenshotResultsEntry.getValue());
-			    }
-	    	}
-
+    	*/
+    	if (screenshotsTests!=null && !screenshotsTests.isEmpty()) {
+    		Iterator<JSONObject> screenshotsIterator = screenshotsTests.iterator();
+    		while(screenshotsIterator.hasNext()) {
+	    		JSONObject ssTest = screenshotsIterator.next();
+    			String screenshotsBrowserList = ssTest.getString("browserList");
+    			String screenshotsUrl = ssTest.getString("url");
+    			
+		    	HashMap<String, String> screenshotInfo = screenshotBrowserLists.runScreenshotTest(screenshotsBrowserList, screenshotsUrl);
+		    	screenshotInfo.put("browser_list", screenshotsBrowserList);
+		    	screenshotInfo.put("url", screenshotsUrl);
+		    	
+		    	if (screenshotInfo.containsKey("error")) {
+		    		listener.getLogger().println("[ERROR] 500 error returned for Screenshot Test");
+		    	} else {
+		    		CBTJenkinsBuildAction ssBuildAction = new CBTJenkinsBuildAction("screenshots", screenshotInfo, build);
+		    		build.addAction(ssBuildAction);
+		    		if (!screenshotInfo.isEmpty()) {
+		    			listener.getLogger().println("\n-----------------------");
+		    			listener.getLogger().println("SCREENSHOT TEST RESULTS");
+		    			listener.getLogger().println("-----------------------");
+		    		}
+				    for (Map.Entry<String, String> screenshotResultsEntry : screenshotInfo.entrySet()) {
+				    	listener.getLogger().println(screenshotResultsEntry.getKey() + ": "+ screenshotResultsEntry.getValue());
+				    }
+		    	}
+    		}
     	}
     	
     	// Do the selenium tests
@@ -222,7 +234,9 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
 						String[] testInfo = seleniumBrowserList.getSeleniumTestInfo(env.get("CBT_BUILD_NAME"), env.get("CBT_BUILD_NUMBER"), env.get("CBT_BROWSER"), env.get("CBT_OPERATING_SYSTEM"), env.get("CBT_RESOLUTION"));
 						
 						String seleniumTestId = testInfo[0];
+						System.out.println(seleniumTestId);
 						String publicUrl = testInfo[1];
+						System.out.println(publicUrl);
 						String jenkinsVersion = build.getHudsonVersion();
 						String pluginVersion = getDescriptor().getVersion();
 
@@ -234,6 +248,7 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
 					}
 				}
 				if (tunnel.jenkinsStartedTheTunnel) {
+					/*
 					if (screenshotBrowserList != null && screenshotUrl != null && !screenshotUrl.equals("") && !screenshotBrowserList.equals("") && !testId.equals("0")) {
 						// we need to poll the screenshot test before closing the tunnel
 						//check if can use actions if when view is not enabled
@@ -242,6 +257,7 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
 							screenshotBrowserLists.queryTest(testId);
 						}
 					}
+					*/
 					tunnel.stop();
 	    			for (int i=1 ; i<4 && tunnel.isTunnelRunning; i++) {
 	    				//will check every 15 seconds for up to 1 minute to see if the tunnel disconnected
@@ -338,7 +354,7 @@ public class CBTJenkinsWrapper extends BuildWrapper implements Serializable {
         	}
             return items;
         }
-        public ListBoxModel doFillScreenshotBrowserListItems() {
+        public ListBoxModel doFillBrowserListItems() {
 			screenshotBrowserLists = new Screenshots(cbtUsername, cbtApikey);
             ListBoxModel items = new ListBoxModel();
 

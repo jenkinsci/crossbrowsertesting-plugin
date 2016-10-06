@@ -38,6 +38,9 @@ public class Selenium {
 		}catch (JSONException jsone) {}
 		
 	}
+	public void setRequest(String username, String apikey) {
+		req = new Request("selenium", username, apikey);
+	}
 	
 	private void populateConfigurations(String json) throws JSONException {
 		JSONArray j_configurations = new JSONArray(json);

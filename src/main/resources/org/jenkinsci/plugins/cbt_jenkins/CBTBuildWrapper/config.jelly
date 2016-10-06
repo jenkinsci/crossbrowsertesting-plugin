@@ -11,7 +11,7 @@
     When submitted, it will be passed to the corresponding constructor parameter.
   -->
   <f:block>
-
+<!--
   <f:entry title="Screenshot Tests">
  	<table width="100%">
  	<f:entry name="screenshotBrowserList" title="Browser List" field="screenshotBrowserList" >
@@ -22,8 +22,27 @@
  	</f:entry>
  	</table>
  </f:entry>
+ -->
+    <f:entry title="Screenshots Tests">
+   	<f:repeatable items="${instance.screenshotsTests}" var="screenshotsTests" add="Add a Screenshots Test">
+  		<table width="100%">
+  			<f:entry name="screenshotsBrowserList" title="Browser List" field="browserList" >
+ 				<f:select value="${screenshotsTests.browserList}"/>
+ 			</f:entry>
+ 			<f:entry name="screenshotsUrl" title="URL" field="url" >
+ 				<f:textbox value="${screenshotsTests.url}" />
+ 			</f:entry>
+    		<f:entry title="">
+     			<div align="right">
+      				<f:repeatableDeleteButton value="Delete Screenshots Test" />
+     			</div>
+    		</f:entry>
+  		</table>
+ 	</f:repeatable>
+ 	</f:entry>
+ 
    <f:entry title="Selenium Tests">
-   	<f:repeatable items="${instance.seleniumTests}" var="seleniumTests" add="Add Selenium Test">
+   	<f:repeatable items="${instance.seleniumTests}" var="seleniumTests" add="Add a Selenium Test">
   		<table width="100%">
   			<f:entry title="Operating System" field="operatingSystem">
    				<f:select value="${seleniumTests.operatingSystem}" />
