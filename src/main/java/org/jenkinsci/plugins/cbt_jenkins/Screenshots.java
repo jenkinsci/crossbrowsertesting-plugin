@@ -14,7 +14,6 @@ public class Screenshots {
 	String username, apikey;
 	List<String> browserLists;
 	Request req;
-	boolean isTestRunning;
 	
 	public Screenshots(String username, String apikey) {
 		this.username = username;
@@ -66,7 +65,6 @@ public class Screenshots {
 			results.put("download_results_zip_public_url", latestScreenshotVersion.getString("download_results_zip_public_url"));
 			results.put("show_results_public_url", latestScreenshotVersion.getString("show_results_public_url"));
 			results.put("active", Boolean.toString(latestScreenshotVersion.getBoolean("active")));
-			isTestRunning = Boolean.parseBoolean(results.get("active"));
 		}catch (Exception e) {
 			results.put("error", e.toString());
 			results.put("json", json);
@@ -74,9 +72,10 @@ public class Screenshots {
 		
 		return results;
 	}
-	public void queryTest(String screenshotsTestId) throws IOException {
+	public boolean isTestRunning(String screenshotsTestId) throws IOException {
 		String json = req.get("/"+screenshotsTestId);
 		HashMap<String, String> results = parseResults(json);
+		return Boolean.parseBoolean(results.get("active"));
 	}
 	
 }
