@@ -61,7 +61,7 @@
   		</table>
  	</f:repeatable>
  </f:entry>
-  <f:entry title="Use Local Tunnel" description="Runs the nodejs cbt_tunnels module" help="localtunnel.html" field="useLocalTunnel">
+  <f:entry title="Use Local Tunnel" description="Runs the nodejs cbt_tunnels module" help="/plugin/crossbrowsertesting/help/localtunnel.html" field="useLocalTunnel">
     <f:checkbox value="${instance.useLocalTunnel()}"/>
   </f:entry>
   <f:entry title="Enable Test Results Pages" description="As tests finish, links will populate on the sidebar of the build that allow you to view the results from the test." field="useTestResults">
