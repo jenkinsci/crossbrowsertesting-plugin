@@ -56,9 +56,9 @@ public class CBTJenkinsBuildAction implements Action {
     	this.testid = id;
     }
     public void setDisplayName(String dn) {
-    	 // the displayname does not wrap after 49 characters
+    	 // the displayname does not wrap after 46 characters
     	 // so it will bleed into the view
-    	int maxCharactersViewable = 49;
+    	int maxCharactersViewable = 46;
     	if (dn.length() > maxCharactersViewable - 3) {
     		// going to cut the string down and add "..."
     		dn = dn.substring(0, maxCharactersViewable - 3);
