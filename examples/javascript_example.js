@@ -7,13 +7,10 @@ var webdriver = require('selenium-webdriver'),
 var caps = {
     name : process.env.CBT_BUILD_NAME,
     build :  process.env.CBT_BUILD_NUMBER,
-    
-    browser_api_name : process.env.CBT_BROWSER
+    browser_api_name : process.env.CBT_BROWSER,
     os_api_name : process.env.CBT_OPERATING_SYSTEM, 
-    
     screen_resolution : process.env.CBT_RESOLUTION,
- 
-    browserName : "internet explorer", // <---- this needs to be the browser type in lower case: firefox, internet explorer, chrome, opera, or safari
+    browserName : process.env.CBT_BROWSERNAME,
     username : process.env.CBT_USERNAME,
     password : process.env.CBT_APIKEY
 };
