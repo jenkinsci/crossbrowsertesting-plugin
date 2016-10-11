@@ -1,6 +1,10 @@
 package org.jenkinsci.plugins.cbt_jenkins;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -47,6 +51,11 @@ public class LocalTunnel {
 		String tunnelCommand = "cbt_tunnels --username " + username + " --authkey " +apikey;
 		tunnelProcess = Runtime.getRuntime().exec(tunnelCommand);
 		jenkinsStartedTheTunnel = true;
+	}
+	public void start(String nodePath, String localTunnelPath) throws IOException{
+		//FilePath killfile = workspace.createTempFile("killfile", null);
+		String tunnelCommand = "cbt_tunnels --username " + username + " --authkey " +apikey;
+		tunnelProcess = Runtime.getRuntime().exec(tunnelCommand);
 	}
 	public void stop() throws IOException, InterruptedException {
 		queryTunnel();

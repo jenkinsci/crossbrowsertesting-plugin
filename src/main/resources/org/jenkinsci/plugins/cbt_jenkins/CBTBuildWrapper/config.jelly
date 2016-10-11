@@ -11,18 +11,6 @@
     When submitted, it will be passed to the corresponding constructor parameter.
   -->
   <f:block>
-<!--
-  <f:entry title="Screenshot Tests">
- 	<table width="100%">
- 	<f:entry name="screenshotBrowserList" title="Browser List" field="screenshotBrowserList" >
- 		<f:select value="${instance.screenshotBrowserList()}"/>
- 	</f:entry>
- 	<f:entry name="screenshotUrl" title="Screenshot URL" field="screenshotUrl" >
- 		<f:textbox value="${instance.screenshotUrl()}" />
- 	</f:entry>
- 	</table>
- </f:entry>
- -->
     <f:entry title="Screenshots Tests">
    	<f:repeatable items="${instance.screenshotsTests}" var="screenshotsTests" add="Add a Screenshots Test">
   		<table width="100%">
