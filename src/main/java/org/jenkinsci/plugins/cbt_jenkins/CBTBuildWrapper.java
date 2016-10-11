@@ -152,36 +152,29 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 	    		String buildnumber = build.getEnvironment().get("BUILD_NUMBER");
 		    	//String buildname = build.getFullDisplayName().substring(0, build.getFullDisplayName().length()-(String.valueOf(build.getNumber()).length()+1));
 	    		//String buildnumber = String.valueOf(build.getNumber());
-		    	// Set the environment variables
-		    	EnvVars env = new EnvVars();
-		    	env.put("CBT_USERNAME", username);
-		    	env.put("CBT_APIKEY", apikey);
-		    	env.put("CBT_BUILD_NAME", buildname);
-		    	env.put("CBT_BUILD_NUMBER", buildnumber);
-		    	env.put("CBT_OPERATING_SYSTEM", operatingSystemApiName);
-		    	env.put("CBT_BROWSER", browserApiName);
-		    	env.put("CBT_RESOLUTION", resolution);
-		    	
-		    	// log the environment variables to the Jenkins build console
-		    	listener.getLogger().println("\nEnvironment Variables");
-		    	listener.getLogger().println("---------------------");
-		    	for (Map.Entry<String, String> envvar : env.entrySet()) {
-		    		listener.getLogger().println(envvar.getKey() + ": "+ envvar.getValue());
-		    	}
-		    	launcher = launcher.decorateByEnv(env); //add them to the tasklauncher
 				for (FilePath executable : workspace.list()) {
+			    	// build the environment variables list
+			    	EnvVars env = new EnvVars();
+			    	env.put("CBT_USERNAME", username);
+			    	env.put("CBT_APIKEY", apikey);
+			    	env.put("CBT_BUILD_NAME", buildname);
+			    	env.put("CBT_BUILD_NUMBER", buildnumber);
+			    	env.put("CBT_OPERATING_SYSTEM", operatingSystemApiName);
+			    	env.put("CBT_BROWSER", browserApiName);
+			    	env.put("CBT_RESOLUTION", resolution);
+			    	
 					String fileName = executable.getName();
 					//Extract extension
 					String extension = "";
 					int l = fileName.lastIndexOf('.');
 					if (l > 0) {
 					    extension = fileName.substring(l+1);
-					}
-					if (extension.equals("py") || extension.equals("rb") || extension.equals("jar") || extension.equals("js") || (extension.equals("exe")) || extension.equals("sh") || extension.equals("bat")) { // supported extensions
-				    	Launcher.ProcStarter lp = launcher.launch();
-				    	lp.pwd(workspace); //set the working directory
+					}					
+					
+					// supported extensions
+					if (extension.equals("py") || extension.equals("rb") || extension.equals("jar") || extension.equals("js") || (extension.equals("exe")) || extension.equals("sh") || extension.equals("bat")) {
+						boolean isJavascriptTest = false; // JS selenium tests have an extra cap
 						ArgumentListBuilder cmd = new ArgumentListBuilder();
-	
 						// figure out how to launch it					
 						if (extension.equals("py") || extension.equals("rb") || extension.equals("jar") || extension.equals("js") || extension.equals("sh")) { //executes with full filename
 							if (extension.equals("py")) { //python
@@ -193,6 +186,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 								cmd.add("-jar");
 							}else if (extension.equals("js")) { //node javascript
 								cmd.add("node");
+								isJavascriptTest = true;
 							}else if (extension.equals("sh")) { // custom shell script
 								cmd.add("sh");
 							}
@@ -201,6 +195,29 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 							FilePath csharpScriptPath = new FilePath(workspace, executable.getName()); 
 							cmd.add(csharpScriptPath.toString());
 						}
+						if (isJavascriptTest) {
+							// Javascript Selenium Tests have an extra capability "browserName"
+							String browserIconClass = seleniumBrowserList.getIconClass(operatingSystemApiName, browserApiName);
+							String browserName = "";
+							if (browserIconClass.equals("ie")) {
+								browserName = "internet explorer";
+							} else if (browserIconClass.equals("safari-mobile")) {
+								browserName = "safari";
+							} else {
+								browserName = browserIconClass;
+							}
+							env.put("CBT_BROWSERNAME", browserName);
+						}
+						launcher = launcher.decorateByEnv(env); //set the environment variables
+						
+				    	// log the environment variables to the Jenkins build console
+				    	listener.getLogger().println("\nEnvironment Variables");
+				    	listener.getLogger().println("---------------------");
+				    	for (Map.Entry<String, String> envvar : env.entrySet()) {
+				    		listener.getLogger().println(envvar.getKey() + ": "+ envvar.getValue());
+				    	}
+				    	Launcher.ProcStarter lp = launcher.launch();
+				    	lp.pwd(workspace); //set the working directory
 						
 						lp.cmds(cmd);
 						listener.getLogger().println("\nErrors/Output");
