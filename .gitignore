@@ -18,3 +18,7 @@ hs_err_pid*
 
 ## Mac Spam Files
 .DS_Store
+
+# IntelliJ Files
+.idea
+src/main/main.iml
