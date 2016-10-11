@@ -189,11 +189,13 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 								isJavascriptTest = true;
 							}else if (extension.equals("sh")) { // custom shell script
 								cmd.add("sh");
+								isJavascriptTest = true;
 							}
 							cmd.add(executable.getName());
 						} else if (extension.equals("exe") || extension.equals("bat")) { //exe csharp
 							FilePath csharpScriptPath = new FilePath(workspace, executable.getName()); 
 							cmd.add(csharpScriptPath.toString());
+							isJavascriptTest = true;
 						}
 						if (isJavascriptTest) {
 							// Javascript Selenium Tests have an extra capability "browserName"
