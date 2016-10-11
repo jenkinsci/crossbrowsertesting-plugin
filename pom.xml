@@ -35,7 +35,7 @@
     <connection>scm:git:git://github.com/jenkinsci/crossbrowsertesting-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/crossbrowsertesting-plugin.git</developerConnection>
     <url>http://github.com/jenkinsci/crossbrowsertesting-plugin</url>
-    <tag>crossbrowsertesting</tag>
+    <tag>crossbrowsertesting-1.2.2</tag>
   </scm>
   <repositories>
     <repository>
@@ -50,7 +50,7 @@
     </pluginRepository>
   </pluginRepositories>
   <!-- Make sure the version has the new point release and has "-SNAPSHOT"  -->
-  <version>1.2.2-SNAPSHOT</version>
+  <version>1.2.2</version>
   <description>This plugin integrates Jenkins users with Selenium Testing on CrossBrowserTesting.com. CrossBrowserTesting.com provides cross browser testing of websites, webpages, and web applications on Windows, Macs, and real iPhones, iPads, and Android Phones and Tablets.</description>
   <dependencies>
   	<dependency>
