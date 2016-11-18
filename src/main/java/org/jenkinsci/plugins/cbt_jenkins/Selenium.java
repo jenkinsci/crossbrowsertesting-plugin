@@ -56,7 +56,8 @@ public class Selenium {
 				JSONObject j_browser = j_browsers.getJSONObject(j);
 				String browser_api_name = j_browser.getString("api_name");
 				String browser_name = j_browser.getString("name");
-				InfoPrototype browser = new InfoPrototype(browser_api_name, browser_name);
+				String browser_icon_class = j_browser.getString("icon_class");
+				InfoPrototype browser = new InfoPrototype(browser_api_name, browser_name, browser_icon_class);
 				configuration.browsers.add(browser);
 			}
 			//parse out the resolution info for the OS
@@ -83,10 +84,26 @@ public class Selenium {
     	}
     	return c;
 	}
+	private InfoPrototype getBrowserInfo(Configuration config, String browserApiName) {
+		InfoPrototype configBrowser = null;
+        for (int i=0 ; i<config.browsers.size() ; i++) {
+        	configBrowser = config.browsers.get(i);
+            if (configBrowser.getApiName().equals(browserApiName)) {
+            	return configBrowser;
+        	}
+    	}
+        return configBrowser;
+	}
+	public String getIconClass(String operatingSystemApiName, String browserApiName) {
+		Configuration config = getConfig(operatingSystemApiName);
+		InfoPrototype browser = getBrowserInfo(config, browserApiName);
+		return browser.getIconClass();
+	}
 	private String getBrowserName(Configuration config, String browserApiName) {
 		/*
 		 * Gets the browsers name from the browser api name
 		 */
+		/*
 		InfoPrototype ip = new InfoPrototype("","");
         for (int i=0 ; i<config.browsers.size() ; i++) {
         	InfoPrototype configBrowser = config.browsers.get(i);
@@ -95,6 +112,9 @@ public class Selenium {
         	}
     	}
 		return "";
+		*/
+		InfoPrototype browser = getBrowserInfo(config, browserApiName);
+		return browser.getName();
 	}
 	
 	public String[] getSeleniumTestInfo(String name, String build, String browserApiName, String osApiName, String resolution) throws IOException {
@@ -157,6 +177,7 @@ class InfoPrototype {
 	 */
 	private String name;
 	private String api_name;
+	private String icon_class;
 	public InfoPrototype(String name) {
 		this.name = name;
 		this.api_name = "";
@@ -164,6 +185,11 @@ class InfoPrototype {
 	public InfoPrototype(String api_name, String name) {
 		this.api_name = api_name;
 		this.name = name;
+	}
+	public InfoPrototype(String api_name, String name, String icon_class) {
+		this.api_name = api_name;
+		this.name = name;
+		this.icon_class = icon_class;
 	}
 	public String getName() {
 		return name;
@@ -174,6 +200,9 @@ class InfoPrototype {
 		}else {
 			return api_name;
 		}
+	}
+	public String getIconClass() {
+		return icon_class;
 	}
 	public String toString() {
 		if (name.isEmpty() || name == null) {
