@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -25,6 +26,14 @@ import hudson.util.ArgumentListBuilder;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import net.sf.json.JSONObject;
+
+import com.crossbrowsertesting.api.Selenium;
+import com.crossbrowsertesting.api.Screenshots;
+import com.crossbrowsertesting.api.LocalTunnel;
+import com.crossbrowsertesting.configurations.Browser;
+import com.crossbrowsertesting.configurations.OperatingSystem;
+import com.crossbrowsertesting.configurations.Resolution;
+import com.crossbrowsertesting.plugin.Constants;
 
 public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 
@@ -107,10 +116,10 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     			if (tunnel.isTunnelRunning) {
     				listener.getLogger().println("Tunnel is now connected.");
     			}else {
-    				throw new Error("The local tunnel did not connect within 30 seconds");
+    				throw new Error(Constants.TUNNEL_START_FAIL_MSG);
     			}
     		}else {
-    			listener.getLogger().println("Tunnel is already running. No need to start a new one.");
+    			listener.getLogger().println(Constants.TUNNEL_NO_NEED_TO_START_MSG);
     		}
     	}
     	if (screenshotsTests != null && !screenshotsTests.isEmpty()) {
@@ -145,9 +154,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	
     	// Do the selenium tests
     	if (seleniumTests != null && !seleniumTests.isEmpty()) {
-	    	listener.getLogger().println("\n---------------------");
-	    	listener.getLogger().println("SELENIUM TEST RESULTS");
-	    	listener.getLogger().println("---------------------");
+	    	listener.getLogger().println(Constants.SELENIUM_START_MSG);
 	    	
 	    	Iterator<JSONObject> i = seleniumTests.iterator();
 
@@ -166,13 +173,13 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 				for (FilePath executable : workspace.list()) {
 			    	// build the environment variables list
 			    	EnvVars env = new EnvVars();
-			    	env.put("CBT_USERNAME", username);
-			    	env.put("CBT_APIKEY", apikey);
-			    	env.put("CBT_BUILD_NAME", buildname);
-			    	env.put("CBT_BUILD_NUMBER", buildnumber);
-			    	env.put("CBT_OPERATING_SYSTEM", operatingSystemApiName);
-			    	env.put("CBT_BROWSER", browserApiName);
-			    	env.put("CBT_RESOLUTION", resolution);
+			    	env.put(Constants.USERNAME, username);
+			    	env.put(Constants.APIKEY, apikey);
+			    	env.put(Constants.BUILDNAME, buildname);
+			    	env.put(Constants.BUILDNUMBER, buildnumber);
+			    	env.put(Constants.OPERATINGSYSTEM, operatingSystemApiName);
+			    	env.put(Constants.BROWSER, browserApiName);
+			    	env.put(Constants.RESOLUTION, resolution);
 			    	
 					String fileName = executable.getName();
 					//Extract extension
@@ -210,7 +217,8 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 						}
 						if (isJavascriptTest) {
 							// Javascript Selenium Tests have an extra capability "browserName"
-							String browserIconClass = seleniumApi.getIconClass(operatingSystemApiName, browserApiName);
+							//String browserIconClass = seleniumApi.getIconClass(operatingSystemApiName, browserApiName);
+							String browserIconClass = seleniumApi.operatingSystems2.get(operatingSystemApiName).browsers2.get(browserApiName).getIconClass();
 							String browserName = "";
 							if (browserIconClass.equals("ie")) {
 								browserName = "internet explorer";
@@ -219,7 +227,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 							} else {
 								browserName = browserIconClass;
 							}
-							env.put("CBT_BROWSERNAME", browserName);
+							env.put(Constants.BROWSERNAME, browserName);
 						}
 						launcher = launcher.decorateByEnv(env); //set the environment variables
 						
@@ -249,17 +257,23 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	}
 		return new Environment() {
 			public boolean tearDown(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException {
+				HashMap<String, Queue<Map<String, String>>> seleniumEnvironments = new HashMap<String, Queue<Map<String, String>>>();
 				for (SeleniumBuildAction se : build.getActions(SeleniumBuildAction.class)) {
-						String[] testInfo = seleniumApi.getSeleniumTestInfo(se.getBuildName(), se.getBuildNumber(), se.getBrowser(), se.getOperatingSystem(), se.getResolution());
-						
-						String seleniumTestId = testInfo[0];
-						String publicUrl = testInfo[1];
+						String key = se.getBrowser()+se.getOperatingSystem()+se.getResolution();
+						if (!seleniumEnvironments.containsKey(key)) {
+							Queue<Map<String, String>> tests = seleniumApi.getSeleniumTestInfo2(se.getBuildName(), se.getBuildNumber(), se.getBrowser(), se.getOperatingSystem(), se.getResolution());
+							seleniumEnvironments.put(key, tests);
+						}
+						Map<String, String> testInfo = seleniumEnvironments.get(key).poll();
+						String seleniumTestId = testInfo.get("selenium_test_id");
+						String publicUrl = testInfo.get("show_result_public_url");
 						String jenkinsVersion = build.getHudsonVersion();
 						String pluginVersion = getDescriptor().getVersion();
 
 						se.setTestId(seleniumTestId);
 						se.setTestPublicUrl(publicUrl);
-						seleniumApi.updateContributer(seleniumTestId, jenkinsVersion, pluginVersion);
+						se.setTestUrl(seleniumTestId);
+						seleniumApi.updateContributer(seleniumTestId, Constants.JENKINS_CONTRIBUTER, jenkinsVersion, pluginVersion);
 				}
 				// we need to wait for the screenshots tests to finish (definitely before closing the tunnel)
 				boolean isAtLeastOneSeleniumTestActive;
@@ -274,7 +288,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 					}
 					// if any of the tests say they are still running. try again
 				}while(isAtLeastOneSeleniumTestActive);
-				if (tunnel.jenkinsStartedTheTunnel) {					
+				if (tunnel.pluginStartedTheTunnel) {					
 					tunnel.stop();
 	    			for (int i=1 ; i<4 && tunnel.isTunnelRunning; i++) {
 	    				//will check every 15 seconds for up to 1 minute to see if the tunnel disconnected
@@ -282,9 +296,9 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 	    				tunnel.queryTunnel();
 	    			}
 	    			if (!tunnel.isTunnelRunning) {
-	    				listener.getLogger().println("Tunnel is now disconnected.");
+	    				listener.getLogger().println(Constants.TUNNEL_STOP_MSG);
 	    			} else {
-	    				listener.getLogger().println("[WARNING]: Failed disconnecting the local tunnel");
+	    				listener.getLogger().println(Constants.TUNNEL_STOP_FAIL_MSG);
 	    			}
 				}
 				return true;
@@ -346,26 +360,26 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	
         public ListBoxModel doFillOperatingSystemItems() {
         	ListBoxModel items = new ListBoxModel();
-            for (int i=0 ; i<seleniumApi.configurations.size() ; i++) {
-            	Configuration config = seleniumApi.configurations.get(i);
+            for (int i=0 ; i<seleniumApi.operatingSystems.size() ; i++) {
+            	OperatingSystem config = seleniumApi.operatingSystems.get(i);
                 items.add(config.getName(), config.getApiName());
             }          
             return items;
         }
         public ListBoxModel doFillBrowserItems(@QueryParameter String operatingSystem) {
             ListBoxModel items = new ListBoxModel();
-            Configuration config = seleniumApi.getConfig(operatingSystem);
+            OperatingSystem config = seleniumApi.operatingSystems2.get(operatingSystem);
             for (int i=0 ; i<config.browsers.size() ; i++) {
-            	InfoPrototype configBrowser = config.browsers.get(i);
+            	Browser configBrowser = config.browsers.get(i);
                 items.add(configBrowser.getName(), configBrowser.getApiName());
         	}
             return items;
         }
         public ListBoxModel doFillResolutionItems(@QueryParameter String operatingSystem) {
             ListBoxModel items = new ListBoxModel();
-            Configuration config = seleniumApi.getConfig(operatingSystem);
+            OperatingSystem config = seleniumApi.operatingSystems2.get(operatingSystem);
             for (int i=0 ; i<config.resolutions.size() ; i++) {
-            	InfoPrototype configResolution = config.resolutions.get(i);
+            	Resolution configResolution = config.resolutions.get(i);
                 items.add(configResolution.getName());
         	}
             return items;

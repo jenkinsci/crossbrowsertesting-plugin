@@ -55,5 +55,13 @@
   <f:entry title="Enable Test Results Pages" description="As tests finish, links will populate on the sidebar of the build that allow you to view the results from the test." field="useTestResults">
     <f:checkbox value="${instance.useTestResults()}"/>
   </f:entry>
+  <f:advanced>
+     <f:entry title="Node Path" field="nodePath">
+  		<f:textbox value="${instance.nodePath()}" />
+  	</f:entry>
+  	<f:entry title="Local Tunnel Path" field="localTunnelPath">
+  		<f:textbox value="${instance.localTunnelPath()}" />
+  	</f:entry>
+  </f:advanced>
   </f:block>
 </j:jelly>
