@@ -37,8 +37,8 @@ import com.crossbrowsertesting.plugin.Constants;
 
 public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 
-	private static String username;
-	private static String apikey;
+	private static String username = "";
+	private static String apikey = "";
 	private static Screenshots screenshotApi;
 	private static Selenium seleniumApi = new Selenium();
 	private static LocalTunnel tunnel;
@@ -54,9 +54,17 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 
     // Fields in config.jelly must match the parameter names in the "DataBoundConstructor" 
     @DataBoundConstructor
-    public CBTBuildWrapper(List<JSONObject> screenshotsTests, List<JSONObject> seleniumTests, boolean useLocalTunnel, boolean useTestResults, String localTunnelPath, String nodePath) {
-    	username = getDescriptor().getUsername();
-    	apikey = getDescriptor().getApikey();
+    //public CBTBuildWrapper(List<JSONObject> screenshotsTests, List<JSONObject> seleniumTests, boolean useLocalTunnel, boolean useTestResults, String localTunnelPath, String nodePath, String username, String apikey) {
+    public CBTBuildWrapper(List<JSONObject> screenshotsTests, List<JSONObject> seleniumTests, boolean useLocalTunnel, boolean useTestResults, String username, String apikey) {
+
+    	if (!username.equals("") && !apikey.equals("") && username != null && apikey != null) {
+        	//advanced options
+    		this.username = username;
+    		this.apikey = apikey;
+    	} else {
+    		this.username = getDescriptor().getUsername();
+    		this.apikey = getDescriptor().getApikey();    		
+    	}
     	
     	seleniumApi.setRequest(username, apikey); // add credentials to requests
 
@@ -67,8 +75,8 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	this.useTestResults = useTestResults;
     	
     	//advanced options
-    	this.localTunnelPath = localTunnelPath;
-    	this.nodePath = nodePath;
+    	//this.localTunnelPath = localTunnelPath;
+    	//this.nodePath = nodePath;
     	
     	tunnel = new LocalTunnel(username, apikey);
     }
@@ -91,6 +99,12 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     public String getNodePath() {
     	return this.nodePath;
     }
+    public String getUsername() {
+    	return this.username;
+    }
+    public String getApikey() {
+    	return this.apikey;
+    }
     
     /*
      *  Main function
@@ -98,15 +112,17 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     @SuppressWarnings("rawtypes")
 	@Override
     public Environment setUp(final AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
-
+    	
     	listener.getLogger().println(build.getFullDisplayName());
     	FilePath workspace = build.getWorkspace();
     	// This is where you 'build' the project.
     	if (useLocalTunnel) {
     		listener.getLogger().println("Going to use tunnel");
+        	tunnel.queryTunnel();
     		if (!tunnel.isTunnelRunning) {
     			listener.getLogger().println("Tunnel is currently not running. Need to start one.");
-    			tunnel.start(nodePath, localTunnelPath);
+    			//tunnel.start(nodePath, localTunnelPath);
+    			tunnel.start();
     			listener.getLogger().println("Waiting for the tunnel to establish a connection.");
     			for (int i=1 ; i<15 && !tunnel.isTunnelRunning ; i++) {
     				//will check every 2 seconds for upto 30 to see if the tunnel connected
@@ -385,8 +401,12 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
             return items;
         }
         public ListBoxModel doFillBrowserListItems() {
-			screenshotApi = new Screenshots(cbtUsername, cbtApikey);
-            ListBoxModel items = new ListBoxModel();
+        	if (!cbtUsername.equals("") && !cbtApikey.equals("") && cbtUsername != null && cbtApikey != null) {
+        		screenshotApi = new Screenshots(cbtUsername, cbtApikey);
+        	} else {
+        		screenshotApi = new Screenshots(username, apikey);
+        	}
+			ListBoxModel items = new ListBoxModel();
 
             for (int i=0 ; i<screenshotApi.browserLists.size() ; i++) {
             	String browserList = screenshotApi.browserLists.get(i);

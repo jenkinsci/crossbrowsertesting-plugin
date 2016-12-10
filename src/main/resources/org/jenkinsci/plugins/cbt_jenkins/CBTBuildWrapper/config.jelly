@@ -56,11 +56,19 @@
     <f:checkbox value="${instance.useTestResults()}"/>
   </f:entry>
   <f:advanced>
+  	<!--
      <f:entry title="Node Path" field="nodePath">
   		<f:textbox value="${instance.nodePath()}" />
   	</f:entry>
   	<f:entry title="Local Tunnel Path" field="localTunnelPath">
   		<f:textbox value="${instance.localTunnelPath()}" />
+  	</f:entry>
+  	-->
+  	<f:entry title="CBT Username" field="username">
+  		<f:textbox value="${instance.username()}" />
+  	</f:entry>
+  	<f:entry title="CBT Apikey" field="apikey">
+  		<f:textbox value="${instance.apikey()}" />
   	</f:entry>
   </f:advanced>
   </f:block>
