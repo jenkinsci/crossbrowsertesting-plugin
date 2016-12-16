@@ -2,14 +2,12 @@ package org.jenkinsci.plugins.cbt_jenkins;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-
+import java.lang.NullPointerException;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -23,17 +21,19 @@ import hudson.model.BuildListener;
 import hudson.model.Descriptor;
 import hudson.tasks.BuildWrapper;
 import hudson.util.ArgumentListBuilder;
-import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import net.sf.json.JSONObject;
-
+import jenkins.model.Jenkins;
 import com.crossbrowsertesting.api.Selenium;
 import com.crossbrowsertesting.api.Screenshots;
+import com.crossbrowsertesting.api.ApiFactory;
 import com.crossbrowsertesting.api.LocalTunnel;
 import com.crossbrowsertesting.configurations.Browser;
 import com.crossbrowsertesting.configurations.OperatingSystem;
 import com.crossbrowsertesting.configurations.Resolution;
 import com.crossbrowsertesting.plugin.Constants;
+
+//import java.util.logging.Logger;
 
 public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 
@@ -45,18 +45,19 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 	private static boolean useLocalTunnel;
 	private static boolean useTestResults;
 		
-	// we'll save these off so that the info repopulates when you reload the configure page
+	// we'll save these off as their real type (List<JSONObject>), so that the info repopulates when you reload the configure page
     private List <JSONObject> seleniumTests;
     private List <JSONObject> screenshotsTests;
     
     private static String localTunnelPath = "";
     private static String nodePath = "";
+    
+    //private final static Logger log = Logger.getLogger(CBTBuildWrapper.class.getName());
 
-    // Fields in config.jelly must match the parameter names in the "DataBoundConstructor" 
     @DataBoundConstructor
     //public CBTBuildWrapper(List<JSONObject> screenshotsTests, List<JSONObject> seleniumTests, boolean useLocalTunnel, boolean useTestResults, String localTunnelPath, String nodePath, String username, String apikey) {
     public CBTBuildWrapper(List<JSONObject> screenshotsTests, List<JSONObject> seleniumTests, boolean useLocalTunnel, boolean useTestResults, String username, String apikey) {
-
+        // Fields in config.jelly must match the parameter names in the "DataBoundConstructor" 
     	if (!username.equals("") && !apikey.equals("") && username != null && apikey != null) {
         	//advanced options
     		this.username = username;
@@ -79,6 +80,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	//this.nodePath = nodePath;
     	
     	tunnel = new LocalTunnel(username, apikey);
+    	checkProxySettingsAndReloadRequest(tunnel);
     }
 
     public List<JSONObject> getSeleniumTests() {
@@ -105,7 +107,27 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     public String getApikey() {
     	return this.apikey;
     }
-    
+	public static void checkProxySettingsAndReloadRequest(ApiFactory af) {
+    	// gets the proxy settings and reloads the Api Requests with them
+    	Jenkins jenkins = Jenkins.getInstance();
+    	try {
+    		String hostname = jenkins.proxy.name;
+    		int port = jenkins.proxy.port; // why is this throwing a null pointer if not set???
+    		try { // we'll do these too, just in case it throws a NPE too
+    			String proxyUsername = jenkins.proxy.getUserName();
+    			String proxyPassword = jenkins.proxy.getPassword();
+    			if (!proxyUsername.isEmpty() && !proxyPassword.isEmpty() && proxyUsername != null && proxyPassword != null) {
+    				af.getRequest().setProxyCredentials(proxyUsername, proxyPassword);
+    			}
+    		} catch(NullPointerException npe) {
+    			System.out.println("NPE thrown");
+    		} // no proxy credentials were set
+        	af.getRequest().setProxy(hostname, port);
+        	af.init();
+    	} catch(NullPointerException npe) {
+    		System.out.println("NPE thrown");
+    	} // dont need to use a proxy	
+	}
     /*
      *  Main function
      */
@@ -346,35 +368,16 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     		return cbtApikey;
     	}
     	public String getVersion() {
+    		/*
+    		 * Get the version of plugin
+    		 */
     		String fullVersion = getPlugin().getVersion();
     		String stuffToIgnore = fullVersion.split("^\\d+[\\.]?\\d*")[1];
     		return fullVersion.substring(0, fullVersion.indexOf(stuffToIgnore));
-    	}
-
-        /**
-         * Performs on-the-fly validation of the form field 'name'.
-         *
-         * @param value
-         *      This parameter receives the value that the user has typed.
-         * @return
-         *      Indicates the outcome of the validation. This is sent to the browser.
-   
-         *      Note that returning {@link FormValidation#error(String)} does not
-         *      prevent the form from being saved. It just means that a message
-         *      will be displayed to the user. 
-         */
-/*
-        public FormValidation doCheckName(@QueryParameter String value)
-                throws IOException, ServletException {
-            if (value.length() == 0)
-                return FormValidation.error("Please set a name");
-            if (value.length() < 4)
-                return FormValidation.warning("Isn't the name too short?");
-            return FormValidation.ok();
-        }
-*/
-    	
+    	}    	
         public ListBoxModel doFillOperatingSystemItems() {
+        	checkProxySettingsAndReloadRequest(seleniumApi);
+        	
         	ListBoxModel items = new ListBoxModel();
             for (int i=0 ; i<seleniumApi.operatingSystems.size() ; i++) {
             	OperatingSystem config = seleniumApi.operatingSystems.get(i);
@@ -400,12 +403,15 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
         	}
             return items;
         }
-        public ListBoxModel doFillBrowserListItems() {
+        public ListBoxModel doFillBrowserListItems() {        	
         	if (!cbtUsername.equals("") && !cbtApikey.equals("") && cbtUsername != null && cbtApikey != null) {
         		screenshotApi = new Screenshots(cbtUsername, cbtApikey);
         	} else {
         		screenshotApi = new Screenshots(username, apikey);
         	}
+        	
+        	checkProxySettingsAndReloadRequest(screenshotApi);
+        	
 			ListBoxModel items = new ListBoxModel();
 
             for (int i=0 ; i<screenshotApi.browserLists.size() ; i++) {
@@ -415,23 +421,27 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
             return items;
         }
         public boolean isApplicable(Class<? extends AbstractProject> aClass) {
-            // Indicates that this builder can be used with all kinds of project types 
+            /*
+             *  Indicates that this builder can be used with all kinds of project types 
+             */
             return true;
         }
 
-        /**
-         * This human readable name is used in the configuration screen.
-         */
         public String getDisplayName() {
-            return "CrossBrowserTesting.com";
+            /*
+             * This human readable name is used in the configuration screen.
+             */
+            return Constants.DISPLAYNAME;
         }
 
         @Override
         public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
-            // To persist configuration information,
-            // set that to properties and call save().
-            // ^Can also use req.bindJSON(this, formData);
-            //  (easier when there are many fields; need set* methods for this, like setUseFrench)
+        	/*
+             To persist configuration information,
+             set that to properties and call save().
+             Can also use req.bindJSON(this, formData);
+             easier when there are many fields; need set* methods for this
+             */
         	cbtUsername = formData.getString("username");
         	cbtApikey = formData.getString("apikey");
             save();
