@@ -80,6 +80,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	//this.nodePath = nodePath;
     	
     	tunnel = new LocalTunnel(username, apikey);
+    	tunnel.queryTunnelOld();
     	checkProxySettingsAndReloadRequest(tunnel);
     }
 
@@ -140,7 +141,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	// This is where you 'build' the project.
     	if (useLocalTunnel) {
     		listener.getLogger().println("Going to use tunnel");
-        	tunnel.queryTunnel();
+        	tunnel.queryTunnelOld();
     		if (!tunnel.isTunnelRunning) {
     			listener.getLogger().println("Tunnel is currently not running. Need to start one.");
     			//tunnel.start(nodePath, localTunnelPath);
@@ -149,7 +150,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     			for (int i=1 ; i<15 && !tunnel.isTunnelRunning ; i++) {
     				//will check every 2 seconds for upto 30 to see if the tunnel connected
     				Thread.sleep(4000);
-    				tunnel.queryTunnel();
+    				tunnel.queryTunnelOld();
     			}
     			if (tunnel.isTunnelRunning) {
     				listener.getLogger().println("Tunnel is now connected.");
@@ -331,7 +332,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 	    			for (int i=1 ; i<4 && tunnel.isTunnelRunning; i++) {
 	    				//will check every 15 seconds for up to 1 minute to see if the tunnel disconnected
 	    				Thread.sleep(15000);
-	    				tunnel.queryTunnel();
+	    				tunnel.queryTunnelOld();
 	    			}
 	    			if (!tunnel.isTunnelRunning) {
 	    				listener.getLogger().println(Constants.TUNNEL_STOP_MSG);
@@ -403,11 +404,18 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
         	}
             return items;
         }
-        public ListBoxModel doFillBrowserListItems() {        	
+        public ListBoxModel doFillBrowserListItems() {
+        	/*
         	if (!cbtUsername.equals("") && !cbtApikey.equals("") && cbtUsername != null && cbtApikey != null) {
         		screenshotApi = new Screenshots(cbtUsername, cbtApikey);
         	} else {
         		screenshotApi = new Screenshots(username, apikey);
+        	}
+        	*/
+        	if (!username.equals("") && !apikey.equals("") && username != null && cbtApikey != null) {
+        		screenshotApi = new Screenshots(username, apikey);
+        	} else {
+        		screenshotApi = new Screenshots(cbtUsername, cbtApikey);
         	}
         	
         	checkProxySettingsAndReloadRequest(screenshotApi);
