@@ -30,19 +30,12 @@ import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
 
-public class CBTCredentials extends BaseStandardCredentials implements StandardUsernamePasswordCredentials{
+@SuppressWarnings("serial")
+public class CBTCredentials extends BaseStandardCredentials implements StandardUsernamePasswordCredentials {
 	private final String username;
 	private final Secret authkey;
     public final static DomainRequirement DOMAIN_REQUIREMENT = new HostnamePortRequirement("crossbrowsertesting.com", 443);
 	
-    /*
-	@DataBoundConstructor
-	public CBTCredentials(@CheckForNull String id, @CheckForNull String description, @CheckForNull String username, @CheckForNull String authkey) {
-		super(CredentialsScope.GLOBAL, id, description);
-		this.username = username;
-		this.authkey = Secret.fromString(authkey);
-	}
-	*/
 	@DataBoundConstructor
 	public CBTCredentials(@CheckForNull String username, @CheckForNull String authkey) {
 		super(CredentialsScope.GLOBAL, String.valueOf(username.concat(authkey).hashCode()), "");
@@ -88,6 +81,7 @@ public class CBTCredentials extends BaseStandardCredentials implements StandardU
         	Account account = new Account(username, authkey);
         	account.init();
         	if (account.connectionSuccessful) {
+        		account.sendMixpanelEvent("Jenkins Plugin Downloaded"); // track install
                 return FormValidation.ok("Successful Authentication");
             } else {
                 return FormValidation.error("Error: Bad username or authkey");
@@ -98,64 +92,6 @@ public class CBTCredentials extends BaseStandardCredentials implements StandardU
         public String getDisplayName() {
             return Constants.DISPLAYNAME;
         }
-        /*
-
-        @CheckForNull
-        private static FormValidation checkForDuplicates(String value, ModelObject context, ModelObject object) {
-            for (CredentialsStore store : CredentialsProvider.lookupStores(object)) {
-                if (!store.hasPermission(CredentialsProvider.VIEW)) {
-                    continue;
-                }
-                ModelObject storeContext = store.getContext();
-                for (Domain domain : store.getDomains()) {
-                    if (CredentialsMatchers.firstOrNull(store.getCredentials(domain), CredentialsMatchers.withId(value))
-                            != null) {
-                        if (storeContext == context) {
-                            return FormValidation.error("This ID is already in use");
-                        } else {
-                            return FormValidation.warning("The ID ‘%s’ is already in use in %s", value,
-                                    storeContext instanceof Item
-                                            ? ((Item) storeContext).getFullDisplayName()
-                                            : storeContext.getDisplayName());
-                        }
-                    }
-                }
-            }
-            return null;
-        }
-
-        public final FormValidation doCheckId(@QueryParameter String value, @AncestorInPath ModelObject context) {
-            if (value.isEmpty()) {
-                return FormValidation.ok();
-            }
-            if (!value.matches("[a-zA-Z0-9_.-]+")) { // anything else considered kosher?
-                return FormValidation.error("Unacceptable characters");
-            }
-            FormValidation problem = checkForDuplicates(value, context, context);
-            if (problem != null) {
-                return problem;
-            }
-            if (!(context instanceof User)) {
-                User me = User.current();
-                if (me != null) {
-                    problem = checkForDuplicates(value, context, me);
-                    if (problem != null) {
-                        return problem;
-                    }
-                }
-            }
-            if (!(context instanceof Jenkins)) {
-                // CredentialsProvider.lookupStores(User) does not return SystemCredentialsProvider.
-                Jenkins j = Jenkins.getInstance();
-                if (j != null) {
-                    problem = checkForDuplicates(value, context, j);
-                    if (problem != null) {
-                        return problem;
-                    }
-                }
-            }
-            return FormValidation.ok();
-        }
-        */
+ 
     }
 }

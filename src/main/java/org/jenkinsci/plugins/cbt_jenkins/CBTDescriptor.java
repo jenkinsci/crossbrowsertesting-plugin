@@ -8,8 +8,6 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
-import com.cloudbees.plugins.credentials.CredentialsMatchers;
-import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardUsernameListBoxModel;
 import com.crossbrowsertesting.api.Account;
 import com.crossbrowsertesting.api.ApiFactory;
@@ -22,7 +20,6 @@ import com.crossbrowsertesting.plugin.Constants;
 import hudson.Extension;
 import hudson.model.AbstractProject;
 import hudson.model.ItemGroup;
-import hudson.security.ACL;
 import hudson.tasks.BuildWrapperDescriptor;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
@@ -37,7 +34,6 @@ public final class CBTDescriptor extends BuildWrapperDescriptor {
     				buildAuthkey = "";
 	Screenshots screenshotApi;
 	Selenium seleniumApi = new Selenium();
-	Account account;
     
 	public CBTDescriptor() throws IOException {
 		super(CBTBuildWrapper.class);
@@ -166,20 +162,13 @@ public final class CBTDescriptor extends BuildWrapperDescriptor {
         return items;
     }
     public ListBoxModel doFillCredentialsIdItems(final @AncestorInPath ItemGroup<?> context) {
-        /*return new StandardUsernameListBoxModel()
-                .withMatching(CredentialsMatchers.anyOf(
-                        CredentialsMatchers.instanceOf(CBTCredentials.class)),
-                        CredentialsProvider.lookupCredentials(
-                                CBTCredentials.class,
-                                context,
-                                ACL.SYSTEM,
-                                new ArrayList<DomainRequirement>())); */
     	return new StandardUsernameListBoxModel().withAll(CBTCredentials.all(context));
     }
     public FormValidation doTestConnection(@QueryParameter("username") final String username, @QueryParameter("authkey") final String authkey) throws IOException, ServletException {
-    	account = new Account(username, authkey);
+    	Account account = new Account(username, authkey);
     	account.init();
     	if (account.connectionSuccessful) {
+    		account.sendMixpanelEvent("Jenkins Plugin Downloaded"); //track install
             return FormValidation.ok(Constants.AUTH_SUCCESS);
         } else {
             return FormValidation.error(Constants.AUTH_FAIL);

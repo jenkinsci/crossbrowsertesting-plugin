@@ -12,12 +12,12 @@ import org.json.JSONArray;
 //import java.util.logging.Logger;1
 import org.kohsuke.stapler.DataBoundConstructor;
 import hudson.Launcher;
-import hudson.Proc;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.tasks.BuildWrapper;
-import hudson.util.ArgumentListBuilder;
 import net.sf.json.JSONObject;
+
+import com.crossbrowsertesting.api.Account;
 import com.crossbrowsertesting.api.LocalTunnel;
 import com.crossbrowsertesting.plugin.Constants;
 
@@ -93,6 +93,13 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
         final CBTCredentials credentials = CBTCredentials.getCredentials(build.getProject(), credentialsId);
         this.username = credentials.getUsername();
         this.authkey = credentials.getAuthkey();
+        
+        //track install
+        Account account = new Account(username, authkey);
+        account.init();
+        if (account.connectionSuccessful) {
+    		account.sendMixpanelEvent("Jenkins Plugin Downloaded");
+        }
         
         getDescriptor().seleniumApi.setRequest(username, authkey); // add credentials to requests
         
