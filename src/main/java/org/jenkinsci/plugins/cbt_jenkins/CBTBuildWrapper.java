@@ -7,67 +7,44 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.lang.NullPointerException;
+
+import org.json.JSONArray;
+//import java.util.logging.Logger;1
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
-import hudson.EnvVars;
-import hudson.Extension;
-import hudson.FilePath;
 import hudson.Launcher;
+import hudson.Proc;
 import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
-import hudson.model.Descriptor;
 import hudson.tasks.BuildWrapper;
 import hudson.util.ArgumentListBuilder;
-import hudson.util.ListBoxModel;
 import net.sf.json.JSONObject;
-import jenkins.model.Jenkins;
-import com.crossbrowsertesting.api.Selenium;
-import com.crossbrowsertesting.api.Screenshots;
-import com.crossbrowsertesting.api.ApiFactory;
 import com.crossbrowsertesting.api.LocalTunnel;
-import com.crossbrowsertesting.configurations.Browser;
-import com.crossbrowsertesting.configurations.OperatingSystem;
-import com.crossbrowsertesting.configurations.Resolution;
 import com.crossbrowsertesting.plugin.Constants;
 
 //import java.util.logging.Logger;
 
+@SuppressWarnings("serial")
 public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 
-	private static String username = "";
-	private static String apikey = "";
-	private static Screenshots screenshotApi;
-	private static Selenium seleniumApi = new Selenium();
-	private static LocalTunnel tunnel;
-	private static boolean useLocalTunnel;
-	private static boolean useTestResults;
-		
-	// we'll save these off as their real type (List<JSONObject>), so that the info repopulates when you reload the configure page
-    private List <JSONObject> seleniumTests;
-    private List <JSONObject> screenshotsTests;
+	private LocalTunnel tunnel;
+	private boolean useLocalTunnel,
+					useTestResults;
+    private List <JSONObject> seleniumTests,
+    						  screenshotsTests;
+    private String localTunnelPath,
+    			   nodePath,
+    			   tunnelName,
+    			   credentialsId,
+    			   username,
+    			   authkey = "";
+    private boolean pluginStartedTunnel = false;
     
-    private static String localTunnelPath = "";
-    private static String nodePath = "";
     
     //private final static Logger log = Logger.getLogger(CBTBuildWrapper.class.getName());
-
-    @DataBoundConstructor
     //public CBTBuildWrapper(List<JSONObject> screenshotsTests, List<JSONObject> seleniumTests, boolean useLocalTunnel, boolean useTestResults, String localTunnelPath, String nodePath, String username, String apikey) {
-    public CBTBuildWrapper(List<JSONObject> screenshotsTests, List<JSONObject> seleniumTests, boolean useLocalTunnel, boolean useTestResults, String username, String apikey) {
-        // Fields in config.jelly must match the parameter names in the "DataBoundConstructor" 
-    	if (!username.equals("") && !apikey.equals("") && username != null && apikey != null) {
-        	//advanced options
-    		this.username = username;
-    		this.apikey = apikey;
-    	} else {
-    		this.username = getDescriptor().getUsername();
-    		this.apikey = getDescriptor().getApikey();    		
-    	}
-    	
-    	seleniumApi.setRequest(username, apikey); // add credentials to requests
+    @DataBoundConstructor
+    public CBTBuildWrapper(List<JSONObject> screenshotsTests, List<JSONObject> seleniumTests, boolean useLocalTunnel, boolean useTestResults, String credentialsId, String tunnelName) {
+        // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
 
     	this.screenshotsTests = screenshotsTests;
     	this.seleniumTests = seleniumTests;
@@ -75,13 +52,11 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	this.useLocalTunnel = useLocalTunnel;
     	this.useTestResults = useTestResults;
     	
+    	this.tunnelName = tunnelName;
+    	
     	//advanced options
     	//this.localTunnelPath = localTunnelPath;
     	//this.nodePath = nodePath;
-    	
-    	tunnel = new LocalTunnel(username, apikey);
-    	tunnel.queryTunnelOld();
-    	checkProxySettingsAndReloadRequest(tunnel);
     }
 
     public List<JSONObject> getSeleniumTests() {
@@ -102,65 +77,62 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     public String getNodePath() {
     	return this.nodePath;
     }
-    public String getUsername() {
-    	return this.username;
+    public String getCredentialsId() {
+    	return this.credentialsId;
     }
-    public String getApikey() {
-    	return this.apikey;
+    public String getTunnelName() {
+    	return this.tunnelName;
     }
-	public static void checkProxySettingsAndReloadRequest(ApiFactory af) {
-    	// gets the proxy settings and reloads the Api Requests with them
-    	Jenkins jenkins = Jenkins.getInstance();
-    	try {
-    		String hostname = jenkins.proxy.name;
-    		int port = jenkins.proxy.port; // why is this throwing a null pointer if not set???
-    		try { // we'll do these too, just in case it throws a NPE too
-    			String proxyUsername = jenkins.proxy.getUserName();
-    			String proxyPassword = jenkins.proxy.getPassword();
-    			if (!proxyUsername.isEmpty() && !proxyPassword.isEmpty() && proxyUsername != null && proxyPassword != null) {
-    				af.getRequest().setProxyCredentials(proxyUsername, proxyPassword);
-    			}
-    		} catch(NullPointerException npe) {
-    			System.out.println("NPE thrown");
-    		} // no proxy credentials were set
-        	af.getRequest().setProxy(hostname, port);
-        	af.init();
-    	} catch(NullPointerException npe) {
-    		System.out.println("NPE thrown");
-    	} // dont need to use a proxy	
-	}
+    
     /*
      *  Main function
      */
     @SuppressWarnings("rawtypes")
 	@Override
-    public Environment setUp(final AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
-    	
-    	listener.getLogger().println(build.getFullDisplayName());
-    	FilePath workspace = build.getWorkspace();
-    	// This is where you 'build' the project.
+    public Environment setUp(final AbstractBuild build, Launcher launcher, final BuildListener listener) throws IOException, InterruptedException {
+        final CBTCredentials credentials = CBTCredentials.getCredentials(build.getProject(), credentialsId);
+        this.username = credentials.getUsername();
+        this.authkey = credentials.getAuthkey();
+        
+        getDescriptor().seleniumApi.setRequest(username, authkey); // add credentials to requests
+        
+        // tunnel stuff
+        if (!tunnelName.isEmpty() && useLocalTunnel) {
+        	listener.getLogger().println(Constants.TUNNEL_USING_TUNNELNAME(tunnelName));
+        	tunnel = new LocalTunnel(username, authkey, tunnelName);
+        }else if(tunnelName.isEmpty() && useLocalTunnel){
+        	listener.getLogger().println(Constants.TUNNEL_USING_DEFAULT);
+        	tunnel = new LocalTunnel(username, authkey);
+        }
+    	tunnel.queryTunnel();
+    	getDescriptor().checkProxySettingsAndReloadRequest(tunnel);
     	if (useLocalTunnel) {
-    		listener.getLogger().println("Going to use tunnel");
-        	tunnel.queryTunnelOld();
+        	tunnel.queryTunnel();
     		if (!tunnel.isTunnelRunning) {
-    			listener.getLogger().println("Tunnel is currently not running. Need to start one.");
+    			listener.getLogger().println(Constants.TUNNEL_NEED_TO_START);
+    			Launcher.ProcStarter tunnelProcess = launcher.launch();
+    			tunnelProcess.cmdAsSingleString(buildStartTunnelCommand());
+    			pluginStartedTunnel = true;
+    			tunnelProcess.start();
     			//tunnel.start(nodePath, localTunnelPath);
-    			tunnel.start();
-    			listener.getLogger().println("Waiting for the tunnel to establish a connection.");
+    			//tunnel.start();
+    			listener.getLogger().println(Constants.TUNNEL_WAITING);
     			for (int i=1 ; i<15 && !tunnel.isTunnelRunning ; i++) {
     				//will check every 2 seconds for upto 30 to see if the tunnel connected
     				Thread.sleep(4000);
-    				tunnel.queryTunnelOld();
+    				tunnel.queryTunnel();
     			}
     			if (tunnel.isTunnelRunning) {
-    				listener.getLogger().println("Tunnel is now connected.");
+    				listener.getLogger().println(Constants.TUNNEL_CONNECTED);
     			}else {
-    				throw new Error(Constants.TUNNEL_START_FAIL_MSG);
+    				throw new Error(Constants.TUNNEL_START_FAIL);
     			}
     		}else {
-    			listener.getLogger().println(Constants.TUNNEL_NO_NEED_TO_START_MSG);
+    			listener.getLogger().println(Constants.TUNNEL_NO_NEED_TO_START);
     		}
     	}
+    	
+    	// screenshots stuff
     	if (screenshotsTests != null && !screenshotsTests.isEmpty()) {
     		Iterator<JSONObject> screenshotsIterator = screenshotsTests.iterator();
     		while(screenshotsIterator.hasNext()) {
@@ -168,7 +140,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     			String screenshotsBrowserList = ssTest.getString("browserList");
     			String screenshotsUrl = ssTest.getString("url");
     			
-		    	HashMap<String, String> screenshotTestResultsInfo = screenshotApi.runScreenshotTest(screenshotsBrowserList, screenshotsUrl);
+		    	HashMap<String, String> screenshotTestResultsInfo = getDescriptor().screenshotApi.runScreenshotTest(screenshotsBrowserList, screenshotsUrl);
 		    	screenshotTestResultsInfo.put("browser_list", screenshotsBrowserList);
 		    	screenshotTestResultsInfo.put("url", screenshotsUrl);
 		    	ScreenshotsBuildAction ssBuildAction = new ScreenshotsBuildAction(useTestResults, screenshotsBrowserList, screenshotsUrl);
@@ -190,271 +162,163 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 		    	}
     		}
     	}
-    	
-    	// Do the selenium tests
-    	if (seleniumTests != null && !seleniumTests.isEmpty()) {
-	    	listener.getLogger().println(Constants.SELENIUM_START_MSG);
-	    	
-	    	Iterator<JSONObject> i = seleniumTests.iterator();
-
-	    	while(i.hasNext()) {
-	    		JSONObject seTest = i.next();
-    			String operatingSystemApiName = seTest.getString("operatingSystem");
+    	return new CBTEnvironment(build);
+    }
+    private String buildStartTunnelCommand() {
+        String startTunnelCmd = "cbt_tunnels --username " + username + " --authkey " + authkey;
+        if (!tunnelName.isEmpty()) {
+        	startTunnelCmd += " --tunnelname "+ tunnelName;
+        }
+        if (tunnel.useProxy()) {
+        	startTunnelCmd += " --proxyPort " + Integer.toString(tunnel.proxyPort());
+			String proxyUrl = tunnel.proxyUrl();
+			if (tunnel.useProxyCredentials()) {
+				proxyUrl = tunnel.proxyUsername() + ":" + tunnel.proxyPassword() + "@" + proxyUrl;
+			}
+			startTunnelCmd += " --proxyIp " + proxyUrl;
+        }
+    	return startTunnelCmd;
+    }
+    
+    @Override
+    public CBTDescriptor getDescriptor() {
+    	return (CBTDescriptor) super.getDescriptor();
+    }
+    
+	@SuppressWarnings("rawtypes")
+    private class CBTEnvironment extends BuildWrapper.Environment {
+		private AbstractBuild build;
+    	private CBTEnvironment(final AbstractBuild build) {
+    		this.build = build;
+    	}
+    	private void makeSeleniumBuildActionFromJSONObject(JSONObject config) {
+    		String buildname = build.getFullDisplayName().substring(0, build.getFullDisplayName().length()-(String.valueOf(build.getNumber()).length()+1));
+			String buildnumber = String.valueOf(build.getNumber());
+			String operatingSystemApiName = config.getString("operating_system");
+			String browserApiName = config.getString("browser");
+			String resolution = config.getString("resolution");
+	    	SeleniumBuildAction seBuildAction = new SeleniumBuildAction(useTestResults, operatingSystemApiName, browserApiName, resolution);
+	    	seBuildAction.setBuild(build);
+	    	seBuildAction.setBuildName(buildname);
+	    	seBuildAction.setBuildNumber(buildnumber);
+	    	build.addAction(seBuildAction);
+    	}
+    	private JSONObject addBrowserNameToJSONObject(JSONObject config) {
+			String operatingSystemApiName = config.getString("operating_system");
+			String browserApiName = config.getString("browser");
+			// Javascript Selenium Tests have an extra capability "browserName"
+			String browserIconClass = getDescriptor().seleniumApi.operatingSystems2.get(operatingSystemApiName).browsers2.get(browserApiName).getIconClass();
+			String browserName = "";
+			if (browserIconClass.equals("ie")) {
+				browserName = "internet explorer";
+			} else if (browserIconClass.equals("safari-mobile")) {
+				browserName = "safari";
+			} else {
+				browserName = browserIconClass;
+			}
+			config.put("browserName", browserName);
+			return config;
+    	}
+    	@Override
+    	public void buildEnvVars(Map<String, String> env) {
+    		// selenium environment variables
+    		String buildname = build.getFullDisplayName().substring(0, build.getFullDisplayName().length()-(String.valueOf(build.getNumber()).length()+1));
+			String buildnumber = String.valueOf(build.getNumber());
+    		JSONArray browsers = new JSONArray();
+    		for (JSONObject config : seleniumTests) {
+    			config = addBrowserNameToJSONObject(config);
+    			makeSeleniumBuildActionFromJSONObject(config);
+				browsers.put(config);
+    		}
+        	if ( seleniumTests.size() == 1 ){
+        		JSONObject seTest = seleniumTests.get(0);
+        		seTest = addBrowserNameToJSONObject(seTest);
+        		makeSeleniumBuildActionFromJSONObject(seTest);
+    			String operatingSystemApiName = seTest.getString("operating_system");
     			String browserApiName = seTest.getString("browser");
     			String resolution = seTest.getString("resolution");
-	
-	    		workspace = build.getWorkspace();
-		    	
-		    	//really bad way to remove the build number from the name...
-	    		String buildname = build.getEnvironment().get("JOB_NAME");
-	    		String buildnumber = build.getEnvironment().get("BUILD_NUMBER");
-	    		
-				for (FilePath executable : workspace.list()) {
-			    	// build the environment variables list
-			    	EnvVars env = new EnvVars();
-			    	env.put(Constants.USERNAME, username);
-			    	env.put(Constants.APIKEY, apikey);
-			    	env.put(Constants.BUILDNAME, buildname);
-			    	env.put(Constants.BUILDNUMBER, buildnumber);
-			    	env.put(Constants.OPERATINGSYSTEM, operatingSystemApiName);
-			    	env.put(Constants.BROWSER, browserApiName);
-			    	env.put(Constants.RESOLUTION, resolution);
-			    	
-					String fileName = executable.getName();
-					//Extract extension
-					String extension = "";
-					int l = fileName.lastIndexOf('.');
-					if (l > 0) {
-					    extension = fileName.substring(l+1);
-					}					
-					
-					// supported extensions
-					if (extension.equals("py") || extension.equals("rb") || extension.equals("jar") || extension.equals("js") || (extension.equals("exe")) || extension.equals("sh") || extension.equals("bat")) {
-						boolean isJavascriptTest = false; // JS selenium tests have an extra cap
-						ArgumentListBuilder cmd = new ArgumentListBuilder();
-						// figure out how to launch it					
-						if (extension.equals("py") || extension.equals("rb") || extension.equals("jar") || extension.equals("js") || extension.equals("sh")) { //executes with full filename
-							if (extension.equals("py")) { //python
-								cmd.add("python");
-							}else if (extension.equals("rb")) { //ruby
-								cmd.add("ruby");
-							}else if (extension.equals("jar")) { //java jar
-								cmd.add("java");
-								cmd.add("-jar");
-							}else if (extension.equals("js")) { //node javascript
-								cmd.add("node");
-								isJavascriptTest = true;
-							}else if (extension.equals("sh")) { // custom shell script
-								cmd.add("sh");
-								isJavascriptTest = true;
-							}
-							cmd.add(executable.getName());
-						} else if (extension.equals("exe") || extension.equals("bat")) { //exe csharp
-							FilePath csharpScriptPath = new FilePath(workspace, executable.getName()); 
-							cmd.add(csharpScriptPath.toString());
-							isJavascriptTest = true;
-						}
-						if (isJavascriptTest) {
-							// Javascript Selenium Tests have an extra capability "browserName"
-							//String browserIconClass = seleniumApi.getIconClass(operatingSystemApiName, browserApiName);
-							String browserIconClass = seleniumApi.operatingSystems2.get(operatingSystemApiName).browsers2.get(browserApiName).getIconClass();
-							String browserName = "";
-							if (browserIconClass.equals("ie")) {
-								browserName = "internet explorer";
-							} else if (browserIconClass.equals("safari-mobile")) {
-								browserName = "safari";
-							} else {
-								browserName = browserIconClass;
-							}
-							env.put(Constants.BROWSERNAME, browserName);
-						}
-						launcher = launcher.decorateByEnv(env); //set the environment variables
-						
-				    	// log the environment variables to the Jenkins build console
-				    	listener.getLogger().println("\nEnvironment Variables");
-				    	listener.getLogger().println("---------------------");
-				    	for (Map.Entry<String, String> envvar : env.entrySet()) {
-				    		listener.getLogger().println(envvar.getKey() + ": "+ envvar.getValue());
-				    	}
-				    	Launcher.ProcStarter lp = launcher.launch();
-				    	lp.pwd(workspace); //set the working directory
-						
-						lp.cmds(cmd);
-						listener.getLogger().println("\nErrors/Output");
-						listener.getLogger().println("-------------");
-						//write the output from the script to the console
-						lp.stdout(listener);
-				    	lp.join(); //run the tests
-				    	SeleniumBuildAction seBuildAction = new SeleniumBuildAction(useTestResults, operatingSystemApiName, browserApiName, resolution);
-				    	seBuildAction.setBuild(build);
-				    	seBuildAction.setBuildName(buildname);
-				    	seBuildAction.setBuildNumber(buildnumber);
-				    	build.addAction(seBuildAction);
-					}
-				}
-	    	}
+    			String browserName = seTest.getString("browserName");
+    			env.put(Constants.OPERATINGSYSTEM, operatingSystemApiName);
+    			env.put(Constants.BROWSER, browserApiName);
+    			env.put(Constants.RESOLUTION, resolution);
+    			env.put(Constants.BROWSERNAME, browserName);
+        	}
+    		env.put(Constants.BROWSERS, browsers.toString());
+    		env.put(Constants.USERNAME, username);
+    		env.put(Constants.APIKEY, authkey);
+    		env.put(Constants.AUTHKEY, authkey);
+    		env.put(Constants.BUILDNAME, buildname);
+    		env.put(Constants.BUILDNUMBER, buildnumber);
+    		super.buildEnvVars(env);
     	}
-		return new Environment() {
-			public boolean tearDown(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException {
-				HashMap<String, Queue<Map<String, String>>> seleniumEnvironments = new HashMap<String, Queue<Map<String, String>>>();
-				for (SeleniumBuildAction se : build.getActions(SeleniumBuildAction.class)) {
-						String key = se.getBrowser()+se.getOperatingSystem()+se.getResolution();
-						if (!seleniumEnvironments.containsKey(key)) {
-							Queue<Map<String, String>> tests = seleniumApi.getSeleniumTestInfo2(se.getBuildName(), se.getBuildNumber(), se.getBrowser(), se.getOperatingSystem(), se.getResolution());
-							seleniumEnvironments.put(key, tests);
-						}
-						Map<String, String> testInfo = seleniumEnvironments.get(key).poll();
-						String seleniumTestId = testInfo.get("selenium_test_id");
-						String publicUrl = testInfo.get("show_result_public_url");
-						String jenkinsVersion = build.getHudsonVersion();
-						String pluginVersion = getDescriptor().getVersion();
-
-						se.setTestId(seleniumTestId);
-						se.setTestPublicUrl(publicUrl);
-						se.setTestUrl(seleniumTestId);
-						seleniumApi.updateContributer(seleniumTestId, Constants.JENKINS_CONTRIBUTER, jenkinsVersion, pluginVersion);
-				}
-				// we need to wait for the screenshots tests to finish (definitely before closing the tunnel)
-				boolean isAtLeastOneSeleniumTestActive;
-				do {
-					isAtLeastOneSeleniumTestActive = false;
-					for (ScreenshotsBuildAction ss : build.getActions(ScreenshotsBuildAction.class)) {
-						// checks each screenshot_test_id to see if the test is finished
-						if(screenshotApi.isTestRunning(ss.getTestId())) {
-							isAtLeastOneSeleniumTestActive = true;
-						}
-						Thread.sleep(30000);
-					}
-					// if any of the tests say they are still running. try again
-				}while(isAtLeastOneSeleniumTestActive);
-				if (tunnel.pluginStartedTheTunnel) {					
-					tunnel.stop();
-	    			for (int i=1 ; i<4 && tunnel.isTunnelRunning; i++) {
-	    				//will check every 15 seconds for up to 1 minute to see if the tunnel disconnected
-	    				Thread.sleep(15000);
-	    				tunnel.queryTunnelOld();
-	    			}
-	    			if (!tunnel.isTunnelRunning) {
-	    				listener.getLogger().println(Constants.TUNNEL_STOP_MSG);
-	    			} else {
-	    				listener.getLogger().println(Constants.TUNNEL_STOP_FAIL_MSG);
-	    			}
-				}
-				return true;
-			}
-		};
-    }
-
-    // Overridden for better type safety.
-    // If your plugin doesn't really define any property on Descriptor,
-    // you don't have to do this.
-    @Override
-    public DescriptorImpl getDescriptor() {
-        return (DescriptorImpl)super.getDescriptor();
-    }
-
-    @Extension // This indicates to Jenkins that this is an implementation of an extension point.
-    public static final class DescriptorImpl extends Descriptor<BuildWrapper> {
-        private String 	cbtUsername,
-        				cbtApikey = "";
-        
-		public DescriptorImpl() throws IOException {
-            load();
-        }
-		
-    	public String getUsername() {
-    		return cbtUsername;
-    	}
-    	public String getApikey() {
-    		return cbtApikey;
-    	}
-    	public String getVersion() {
+    	@Override
+    	public boolean tearDown(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException {
     		/*
-    		 * Get the version of plugin
+    		 * Runs after the build
     		 */
-    		String fullVersion = getPlugin().getVersion();
-    		String stuffToIgnore = fullVersion.split("^\\d+[\\.]?\\d*")[1];
-    		return fullVersion.substring(0, fullVersion.indexOf(stuffToIgnore));
-    	}    	
-        public ListBoxModel doFillOperatingSystemItems() {
-        	checkProxySettingsAndReloadRequest(seleniumApi);
-        	
-        	ListBoxModel items = new ListBoxModel();
-            for (int i=0 ; i<seleniumApi.operatingSystems.size() ; i++) {
-            	OperatingSystem config = seleniumApi.operatingSystems.get(i);
-                items.add(config.getName(), config.getApiName());
-            }          
-            return items;
-        }
-        public ListBoxModel doFillBrowserItems(@QueryParameter String operatingSystem) {
-            ListBoxModel items = new ListBoxModel();
-            OperatingSystem config = seleniumApi.operatingSystems2.get(operatingSystem);
-            for (int i=0 ; i<config.browsers.size() ; i++) {
-            	Browser configBrowser = config.browsers.get(i);
-                items.add(configBrowser.getName(), configBrowser.getApiName());
-        	}
-            return items;
-        }
-        public ListBoxModel doFillResolutionItems(@QueryParameter String operatingSystem) {
-            ListBoxModel items = new ListBoxModel();
-            OperatingSystem config = seleniumApi.operatingSystems2.get(operatingSystem);
-            for (int i=0 ; i<config.resolutions.size() ; i++) {
-            	Resolution configResolution = config.resolutions.get(i);
-                items.add(configResolution.getName());
-        	}
-            return items;
-        }
-        public ListBoxModel doFillBrowserListItems() {
-        	/*
-        	if (!cbtUsername.equals("") && !cbtApikey.equals("") && cbtUsername != null && cbtApikey != null) {
-        		screenshotApi = new Screenshots(cbtUsername, cbtApikey);
-        	} else {
-        		screenshotApi = new Screenshots(username, apikey);
-        	}
-        	*/
-        	if (!username.equals("") && !apikey.equals("") && username != null && cbtApikey != null) {
-        		screenshotApi = new Screenshots(username, apikey);
-        	} else {
-        		screenshotApi = new Screenshots(cbtUsername, cbtApikey);
-        	}
-        	
-        	checkProxySettingsAndReloadRequest(screenshotApi);
-        	
-			ListBoxModel items = new ListBoxModel();
+			HashMap<String, Queue<Map<String, String>>> seleniumEnvironments = new HashMap<String, Queue<Map<String, String>>>();
+			for (SeleniumBuildAction se : build.getActions(SeleniumBuildAction.class)) {
+				// this is to catch a user that puts the same configuration more than once
+				// instead of making the call to "/selenium" multiple times, it only calls it once and reuses the results
+					String key = se.getBrowser()+se.getOperatingSystem()+se.getResolution();
+					
+					String buildName = se.getBuildName();
+					String buildNumber = se.getBuildNumber();
+					String browserApiName = se.getBrowser();
+					String osApiName = se.getOperatingSystem();
+					String resolution = se.getResolution();
+					
+					if (!seleniumEnvironments.containsKey(key)) {
+						Queue<Map<String, String>> tests = getDescriptor().seleniumApi.getSeleniumTestInfo2(buildName, buildNumber, browserApiName, osApiName, resolution);
+						seleniumEnvironments.put(key, tests);
+					}
+					Map<String, String> testInfo = seleniumEnvironments.get(key).poll();
+					String seleniumTestId = "";
+					String publicUrl = "";
+					try {
+						seleniumTestId = testInfo.get("selenium_test_id");
+						publicUrl = testInfo.get("show_result_public_url");
+					}catch (NullPointerException npe) {}
+					String jenkinsVersion = build.getHudsonVersion();
+					String pluginVersion = getDescriptor().getVersion();
 
-            for (int i=0 ; i<screenshotApi.browserLists.size() ; i++) {
-            	String browserList = screenshotApi.browserLists.get(i);
-                items.add(browserList);
-            }
-            return items;
-        }
-        public boolean isApplicable(Class<? extends AbstractProject> aClass) {
-            /*
-             *  Indicates that this builder can be used with all kinds of project types 
-             */
-            return true;
-        }
-
-        public String getDisplayName() {
-            /*
-             * This human readable name is used in the configuration screen.
-             */
-            return Constants.DISPLAYNAME;
-        }
-
-        @Override
-        public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
-        	/*
-             To persist configuration information,
-             set that to properties and call save().
-             Can also use req.bindJSON(this, formData);
-             easier when there are many fields; need set* methods for this
-             */
-        	cbtUsername = formData.getString("username");
-        	cbtApikey = formData.getString("apikey");
-            save();
-            return super.configure(req,formData);            
-        }
+					se.setTestId(seleniumTestId);
+					se.setTestPublicUrl(publicUrl);
+					se.setTestUrl(seleniumTestId);
+					if(seleniumTestId == null || seleniumTestId.isEmpty()) {
+						// lets get a phony test id for the contributer if we cant find one for some reason
+						seleniumTestId = getDescriptor().seleniumApi.getSeleniumTestId(buildName, buildNumber, browserApiName, osApiName, resolution);
+					}
+					getDescriptor().seleniumApi.updateContributer(seleniumTestId, Constants.JENKINS_CONTRIBUTER, jenkinsVersion, pluginVersion);
+			}
+			// we need to wait for the screenshots tests to finish (definitely before closing the tunnel)
+			boolean isAtLeastOneScreenshotTestActive;
+			do {
+				isAtLeastOneScreenshotTestActive = false;
+				for (ScreenshotsBuildAction ss : build.getActions(ScreenshotsBuildAction.class)) {
+					// checks each screenshot_test_id to see if the test is finished
+					if(getDescriptor().screenshotApi.isTestRunning(ss.getTestId())) {
+						isAtLeastOneScreenshotTestActive = true;
+					}
+					Thread.sleep(30000);
+				}
+				// if any of the tests say they are still running. try again
+			}while(isAtLeastOneScreenshotTestActive);
+			if (pluginStartedTunnel) {					
+				tunnel.stop();
+    			for (int i=1 ; i<20 && tunnel.isTunnelRunning; i++) {
+    				//will check every 15 seconds for up to 5 minutea to see if the tunnel disconnected
+    				Thread.sleep(15000);
+    				tunnel.queryTunnel();
+    			}
+    			if (!tunnel.isTunnelRunning) {
+    				listener.getLogger().println(Constants.TUNNEL_STOP);
+    			} else {
+    				listener.getLogger().println(Constants.TUNNEL_STOP_FAIL);
+    			}
+			}
+			return true;
+    	}
     }
 }
 
