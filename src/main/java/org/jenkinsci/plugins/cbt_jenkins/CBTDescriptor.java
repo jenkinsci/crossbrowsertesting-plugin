@@ -65,21 +65,21 @@ public final class CBTDescriptor extends BuildWrapperDescriptor {
          */
         return Constants.DISPLAYNAME;
     }
-
+/*
     @Override
     public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
-    	/*
-         To persist configuration information,
-         set that to properties and call save().
-         Can also use req.bindJSON(this, formData);
-         easier when there are many fields; need set* methods for this
-         */
+    	
+         // To persist configuration information,
+         // set that to properties and call save().
+         // Can also use req.bindJSON(this, formData);
+         // easier when there are many fields; need set* methods for this
+        
     	globalUsername = formData.getString("username");
     	globalAuthkey = formData.getString("authkey");
         save();
         return super.configure(req,formData);            
     }
-
+*/
 	@Override
 	public boolean isApplicable(AbstractProject<?, ?> item) {
 		return true;
@@ -106,12 +106,12 @@ public final class CBTDescriptor extends BuildWrapperDescriptor {
     				af.getRequest().setProxyCredentials(proxyUsername, proxyPassword);
     			}
     		} catch(NullPointerException npe) {
-    			System.out.println("no proxy credentials were set");
+    			//System.out.println("no proxy credentials were set");
     		} // no proxy credentials were set
         	af.getRequest().setProxy(hostname, port);
         	af.init();
     	} catch(NullPointerException npe) {
-    		System.out.println("dont need to use a proxy");
+    		//System.out.println("dont need to use a proxy");
     	} // dont need to use a proxy	
 	}
     public ListBoxModel doFillOperating_systemItems() {
