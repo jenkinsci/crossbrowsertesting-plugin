@@ -111,10 +111,11 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
         	listener.getLogger().println(Constants.TUNNEL_USING_DEFAULT);
         	tunnel = new LocalTunnel(username, authkey);
         }
-    	tunnel.queryTunnel();
-    	getDescriptor().checkProxySettingsAndReloadRequest(tunnel);
+    	//tunnel.queryTunnel();
+    	//getDescriptor().checkProxySettingsAndReloadRequest(tunnel);
     	if (useLocalTunnel) {
         	tunnel.queryTunnel();
+        	getDescriptor().checkProxySettingsAndReloadRequest(tunnel);
     		if (!tunnel.isTunnelRunning) {
     			listener.getLogger().println(Constants.TUNNEL_NEED_TO_START);
     			Launcher.ProcStarter tunnelProcess = launcher.launch();
@@ -143,6 +144,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	if (screenshotsTests != null && !screenshotsTests.isEmpty()) {
     		Iterator<JSONObject> screenshotsIterator = screenshotsTests.iterator();
     		while(screenshotsIterator.hasNext()) {
+    			System.out.println("in screenshot loop");
 	    		JSONObject ssTest = screenshotsIterator.next();
     			String screenshotsBrowserList = ssTest.getString("browserList");
     			String screenshotsUrl = ssTest.getString("url");
@@ -265,6 +267,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     		 */
 			HashMap<String, Queue<Map<String, String>>> seleniumEnvironments = new HashMap<String, Queue<Map<String, String>>>();
 			for (SeleniumBuildAction se : build.getActions(SeleniumBuildAction.class)) {
+				System.out.println("build action stuff");
 				// this is to catch a user that puts the same configuration more than once
 				// instead of making the call to "/selenium" multiple times, it only calls it once and reuses the results
 					String key = se.getBrowser()+se.getOperatingSystem()+se.getResolution();
@@ -301,6 +304,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 			// we need to wait for the screenshots tests to finish (definitely before closing the tunnel)
 			boolean isAtLeastOneScreenshotTestActive;
 			do {
+				System.out.println("trying to see if there are still screenshots running");
 				isAtLeastOneScreenshotTestActive = false;
 				for (ScreenshotsBuildAction ss : build.getActions(ScreenshotsBuildAction.class)) {
 					// checks each screenshot_test_id to see if the test is finished
@@ -311,10 +315,10 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 				}
 				// if any of the tests say they are still running. try again
 			}while(isAtLeastOneScreenshotTestActive);
-			if (pluginStartedTunnel) {					
+			if (pluginStartedTunnel) {				
 				tunnel.stop();
     			for (int i=1 ; i<20 && tunnel.isTunnelRunning; i++) {
-    				//will check every 15 seconds for up to 5 minutea to see if the tunnel disconnected
+    				//will check every 15 seconds for up to 5 minutes to see if the tunnel disconnected
     				Thread.sleep(15000);
     				tunnel.queryTunnel();
     			}
