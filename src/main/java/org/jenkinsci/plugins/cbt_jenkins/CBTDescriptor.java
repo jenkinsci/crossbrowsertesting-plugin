@@ -36,7 +36,11 @@ public final class CBTDescriptor extends BuildWrapperDescriptor {
 	Selenium seleniumApi = new Selenium();
     
 	public CBTDescriptor() throws IOException {
+		/*
+		 * instantiated when the plugin is installed
+		 */
 		super(CBTBuildWrapper.class);
+		//System.out.println("in descriptor");
         load();
     }
 	

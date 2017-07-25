@@ -39,13 +39,15 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     			   authkey = "";
     private boolean pluginStartedTunnel = false;
     
-    
     //private final static Logger log = Logger.getLogger(CBTBuildWrapper.class.getName());
-    //public CBTBuildWrapper(List<JSONObject> screenshotsTests, List<JSONObject> seleniumTests, boolean useLocalTunnel, boolean useTestResults, String localTunnelPath, String nodePath, String username, String apikey) {
+
     @DataBoundConstructor
     public CBTBuildWrapper(List<JSONObject> screenshotsTests, List<JSONObject> seleniumTests, boolean useLocalTunnel, boolean useTestResults, String credentialsId, String tunnelName) {
-        // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
-
+    	/*
+    	 * Instantiated when the configuration is saved
+    	 * Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
+    	 */
+    	//System.out.println("in build wrapper");
     	this.screenshotsTests = screenshotsTests;
     	this.seleniumTests = seleniumTests;
     	
@@ -53,7 +55,14 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	this.useTestResults = useTestResults;
     	
     	this.tunnelName = tunnelName;
+    	this.credentialsId = credentialsId;
     	
+    	// reset the username and authkey for screenshots
+        final CBTCredentials credentials = CBTCredentials.getCredentials(null, credentialsId);
+        this.username = credentials.getUsername();
+        this.authkey = credentials.getAuthkey();
+        getDescriptor().setBuildCredentials(username, authkey);
+
     	//advanced options
     	//this.localTunnelPath = localTunnelPath;
     	//this.nodePath = nodePath;
@@ -84,16 +93,15 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	return this.tunnelName;
     }
     
-    /*
-     *  Main function
-     */
     @SuppressWarnings("rawtypes")
 	@Override
     public Environment setUp(final AbstractBuild build, Launcher launcher, final BuildListener listener) throws IOException, InterruptedException {
+    	/*
+    	 * called when you the build runs
+    	 */
         final CBTCredentials credentials = CBTCredentials.getCredentials(build.getProject(), credentialsId);
         this.username = credentials.getUsername();
         this.authkey = credentials.getAuthkey();
-        
         //track install
         Account account = new Account(username, authkey);
         account.init();
@@ -102,7 +110,6 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
         }
         
         getDescriptor().seleniumApi.setRequest(username, authkey); // add credentials to requests
-        
         // tunnel stuff
         if (!tunnelName.isEmpty() && useLocalTunnel) {
         	listener.getLogger().println(Constants.TUNNEL_USING_TUNNELNAME(tunnelName));
@@ -144,7 +151,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	if (screenshotsTests != null && !screenshotsTests.isEmpty()) {
     		Iterator<JSONObject> screenshotsIterator = screenshotsTests.iterator();
     		while(screenshotsIterator.hasNext()) {
-    			System.out.println("in screenshot loop");
+    			//System.out.println("in screenshot loop");
 	    		JSONObject ssTest = screenshotsIterator.next();
     			String screenshotsBrowserList = ssTest.getString("browserList");
     			String screenshotsUrl = ssTest.getString("url");
@@ -242,7 +249,6 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
         	if ( seleniumTests.size() == 1 ){
         		JSONObject seTest = seleniumTests.get(0);
         		seTest = addBrowserNameToJSONObject(seTest);
-        		makeSeleniumBuildActionFromJSONObject(seTest);
     			String operatingSystemApiName = seTest.getString("operating_system");
     			String browserApiName = seTest.getString("browser");
     			String resolution = seTest.getString("resolution");
@@ -267,7 +273,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     		 */
 			HashMap<String, Queue<Map<String, String>>> seleniumEnvironments = new HashMap<String, Queue<Map<String, String>>>();
 			for (SeleniumBuildAction se : build.getActions(SeleniumBuildAction.class)) {
-				System.out.println("build action stuff");
+				//System.out.println("build action stuff");
 				// this is to catch a user that puts the same configuration more than once
 				// instead of making the call to "/selenium" multiple times, it only calls it once and reuses the results
 					String key = se.getBrowser()+se.getOperatingSystem()+se.getResolution();
@@ -304,11 +310,12 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 			// we need to wait for the screenshots tests to finish (definitely before closing the tunnel)
 			boolean isAtLeastOneScreenshotTestActive;
 			do {
-				System.out.println("trying to see if there are still screenshots running");
+				listener.getLogger().println("trying to see if there are still screenshots running");
 				isAtLeastOneScreenshotTestActive = false;
 				for (ScreenshotsBuildAction ss : build.getActions(ScreenshotsBuildAction.class)) {
 					// checks each screenshot_test_id to see if the test is finished
 					if(getDescriptor().screenshotApi.isTestRunning(ss.getTestId())) {
+						listener.getLogger().println("at least one screenshots test is still running");
 						isAtLeastOneScreenshotTestActive = true;
 					}
 					Thread.sleep(30000);
