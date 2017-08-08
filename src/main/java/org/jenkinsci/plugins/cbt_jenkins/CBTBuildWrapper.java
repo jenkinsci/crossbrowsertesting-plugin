@@ -1,16 +1,28 @@
 package org.jenkinsci.plugins.cbt_jenkins;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.nio.file.Path;
 
+import org.apache.commons.io.FileUtils;
 import org.json.JSONArray;
-//import java.util.logging.Logger;1
+//import java.util.logging.Logger;
 import org.kohsuke.stapler.DataBoundConstructor;
+
+import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
@@ -92,7 +104,34 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     public String getTunnelName() {
     	return this.tunnelName;
     }
-    
+    private File downloadTunnelBinary(FilePath workspace) throws IOException {
+    	URL tunnelBinaryAddress;
+    	String binaryName;
+		if (System.getProperty("os.name").toLowerCase().contains("mac")) { // mac
+			tunnelBinaryAddress = new URL("https://github.com/crossbrowsertesting/cbt-tunnel-nodejs/releases/download/v0.1.0/cbt-tunnels-macos");
+			binaryName = "cbt_tunnels";
+		}else if (System.getProperty("os.name").toLowerCase().contains("win")) { // windows
+			tunnelBinaryAddress = new URL("https://github.com/crossbrowsertesting/cbt-tunnel-nodejs/releases/download/v0.1.0/cbt-tunnels-win.exe");
+			binaryName = "cbt_tunnels.exe";
+		}else if (System.getProperty("os.name").toLowerCase().contains("nix") ||
+				System.getProperty("os.name").toLowerCase().contains("nux") ||
+				System.getProperty("os.name").toLowerCase().contains("aix")) { // linux / unix ?
+			tunnelBinaryAddress = new URL("https://github.com/crossbrowsertesting/cbt-tunnel-nodejs/releases/download/v0.1.0/cbt-tunnels-ubuntu");
+			binaryName = "cbt_tunnels";
+		}else {
+			return null;
+		}
+		File binary = new File(workspace.toString(), binaryName);
+    	FileUtils.copyURLToFile(tunnelBinaryAddress, binary);
+		if (System.getProperty("os.name").toLowerCase().contains("mac") ||
+				System.getProperty("os.name").toLowerCase().contains("nix") ||
+				System.getProperty("os.name").toLowerCase().contains("nux") ||
+				System.getProperty("os.name").toLowerCase().contains("aix")) { //unix needs executable permission
+			binary.setExecutable(true);			
+		}
+				
+    	return binary;
+    }
     @SuppressWarnings("rawtypes")
 	@Override
     public Environment setUp(final AbstractBuild build, Launcher launcher, final BuildListener listener) throws IOException, InterruptedException {
@@ -121,16 +160,17 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	//tunnel.queryTunnel();
     	//getDescriptor().checkProxySettingsAndReloadRequest(tunnel);
     	if (useLocalTunnel) {
+    		File binary = downloadTunnelBinary(build.getWorkspace());
         	tunnel.queryTunnel();
         	getDescriptor().checkProxySettingsAndReloadRequest(tunnel);
     		if (!tunnel.isTunnelRunning) {
     			listener.getLogger().println(Constants.TUNNEL_NEED_TO_START);
     			Launcher.ProcStarter tunnelProcess = launcher.launch();
-    			tunnelProcess.cmdAsSingleString(buildStartTunnelCommand());
+    			tunnelProcess.cmdAsSingleString(buildStartTunnelCommand(binary.getAbsolutePath()));
     			pluginStartedTunnel = true;
     			tunnelProcess.start();
     			//tunnel.start(nodePath, localTunnelPath);
-    			//tunnel.start();
+
     			listener.getLogger().println(Constants.TUNNEL_WAITING);
     			for (int i=1 ; i<15 && !tunnel.isTunnelRunning ; i++) {
     				//will check every 2 seconds for upto 30 to see if the tunnel connected
@@ -180,8 +220,11 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	}
     	return new CBTEnvironment(build);
     }
-    private String buildStartTunnelCommand() {
-        String startTunnelCmd = "cbt_tunnels --username " + username + " --authkey " + authkey;
+    private String buildStartTunnelCommand(String tunnelPath) {
+    	if (tunnelPath == null) {
+    		tunnelPath = "cbt_tunnels";
+    	}
+        String startTunnelCmd = "\"" + tunnelPath + "\" --username " + username + " --authkey " + authkey;
         if (!tunnelName.isEmpty()) {
         	startTunnelCmd += " --tunnelname "+ tunnelName;
         }
@@ -339,4 +382,3 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	}
     }
 }
-
