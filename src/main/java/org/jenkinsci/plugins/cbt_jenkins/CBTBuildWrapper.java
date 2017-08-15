@@ -32,6 +32,8 @@ import net.sf.json.JSONObject;
 import com.crossbrowsertesting.api.Account;
 import com.crossbrowsertesting.api.LocalTunnel;
 import com.crossbrowsertesting.plugin.Constants;
+import java.net.URISyntaxException;
+
 
 //import java.util.logging.Logger;
 
@@ -160,28 +162,33 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	//tunnel.queryTunnel();
     	//getDescriptor().checkProxySettingsAndReloadRequest(tunnel);
     	if (useLocalTunnel) {
-    		File binary = downloadTunnelBinary(build.getWorkspace());
+
+    		//File binary = downloadTunnelBinary(build.getWorkspace());
         	tunnel.queryTunnel();
         	getDescriptor().checkProxySettingsAndReloadRequest(tunnel);
     		if (!tunnel.isTunnelRunning) {
     			listener.getLogger().println(Constants.TUNNEL_NEED_TO_START);
-    			Launcher.ProcStarter tunnelProcess = launcher.launch();
-    			tunnelProcess.cmdAsSingleString(buildStartTunnelCommand(binary.getAbsolutePath()));
-    			pluginStartedTunnel = true;
-    			tunnelProcess.start();
+    		//	Launcher.ProcStarter tunnelProcess = launcher.launch();
+    		//	tunnelProcess.cmdAsSingleString(buildStartTunnelCommand(binary.getAbsolutePath()));
+    		//	pluginStartedTunnel = true;
+    			//tunnelProcess.start();
     			//tunnel.start(nodePath, localTunnelPath);
-
-    			listener.getLogger().println(Constants.TUNNEL_WAITING);
-    			for (int i=1 ; i<15 && !tunnel.isTunnelRunning ; i++) {
-    				//will check every 2 seconds for upto 30 to see if the tunnel connected
-    				Thread.sleep(4000);
-    				tunnel.queryTunnel();
-    			}
-    			if (tunnel.isTunnelRunning) {
-    				listener.getLogger().println(Constants.TUNNEL_CONNECTED);
-    			}else {
-    				throw new Error(Constants.TUNNEL_START_FAIL);
-    			}
+				try {
+					tunnel.start(true);
+    				listener.getLogger().println(Constants.TUNNEL_WAITING);
+    				for (int i=1 ; i<15 && !tunnel.isTunnelRunning ; i++) {
+    					//will check every 2 seconds for upto 30 to see if the tunnel connected
+    					Thread.sleep(4000);
+    					tunnel.queryTunnel();
+    				}
+    				if (tunnel.isTunnelRunning) {
+    					listener.getLogger().println(Constants.TUNNEL_CONNECTED);
+    				}else {
+						throw new Error(Constants.TUNNEL_START_FAIL);
+					}
+    			}catch (URISyntaxException | IOException e) {
+					throw new Error(Constants.TUNNEL_START_FAIL);
+				}
     		}else {
     			listener.getLogger().println(Constants.TUNNEL_NO_NEED_TO_START);
     		}
@@ -352,21 +359,31 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 			}
 			// we need to wait for the screenshots tests to finish (definitely before closing the tunnel)
 			boolean isAtLeastOneScreenshotTestActive;
+			int count = 1;
 			do {
-				listener.getLogger().println("trying to see if there are still screenshots running");
+				if (count == 1) { // no need to spam the logs with this print statement
+					listener.getLogger().println("trying to see if there are still screenshots running");
+				}
 				isAtLeastOneScreenshotTestActive = false;
 				for (ScreenshotsBuildAction ss : build.getActions(ScreenshotsBuildAction.class)) {
 					// checks each screenshot_test_id to see if the test is finished
 					if(getDescriptor().screenshotApi.isTestRunning(ss.getTestId())) {
-						listener.getLogger().println("at least one screenshots test is still running");
+						if (count == 1) { // no need to spam the logs with this print statement
+							listener.getLogger().println("at least one screenshots test is still running");
+						}
 						isAtLeastOneScreenshotTestActive = true;
 					}
 					Thread.sleep(30000);
 				}
+				count++;
 				// if any of the tests say they are still running. try again
 			}while(isAtLeastOneScreenshotTestActive);
-			if (pluginStartedTunnel) {				
-				tunnel.stop();
+			if (tunnel.pluginStartedTheTunnel) {
+				try {
+					tunnel.stop();
+				}catch(IOException ioe) {
+					// most likely got a bad gatewat but we're going to delete the cbt_tunnel binary on exit anyway so the tunnel will still be killed
+				}
     			for (int i=1 ; i<20 && tunnel.isTunnelRunning; i++) {
     				//will check every 15 seconds for up to 5 minutes to see if the tunnel disconnected
     				Thread.sleep(15000);

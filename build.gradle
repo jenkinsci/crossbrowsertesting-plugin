@@ -1,0 +1,67 @@
+plugins {
+    id 'org.jenkins-ci.jpi' version '0.22.0'
+    id 'java'
+    id 'idea'
+}
+
+group = 'org.jenkins-ci.plugins'
+version = '2.0.4-SNAPSHOT'
+description = """CrossBrowserTesting.com plugin"""
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+tasks.withType(JavaCompile) {
+	options.encoding = 'UTF-8'
+}
+
+repositories {
+    mavenCentral()
+    maven { url "https://jitpack.io" }
+}
+
+jenkinsPlugin {
+    coreVersion = '2.5'
+    displayName = 'CrossBrowserTesting.com Plugin'
+    url = 'https://wiki.jenkins-ci.org/display/JENKINS/CrossBrowserTesting+Plugin'
+    gitHubUrl = 'http://github.com/jenkinsci/crossbrowsertesting-plugin'
+    repoUrl = 'https://repo.jenkins-ci.org/releases'
+    fileExtension = 'hpi'
+
+    developers {
+        developer {
+            id 'crossbrowsertesting'
+            name 'CrossBrowserTesting.com LLC'
+            email 'info@crossbrowsertesting.com'
+        }
+    }
+    licenses {
+        license {
+            name 'MIT License'
+            url 'http://opensource.org/licenses/MIT'
+        }
+    }
+}
+
+dependencies {
+    compile group: 'org.json', name: 'json', version:'20151123'
+    compile group: 'commons-codec', name: 'commons-codec', version:'1.9'
+    compile group: 'com.github.crossbrowsertesting', name: 'ci-common', version:'0.29-SNAPSHOT'
+    testCompile group: 'org.codehaus.mojo', name: 'findbugs-maven-plugin', version: '3.0.4'
+
+    jenkinsPlugins group: 'org.jenkins-ci.plugins', name: 'junit', version: '1.9', ext: 'jar'
+    jenkinsPlugins group: 'org.jenkins-ci.plugins', name: 'credentials', version: '2.1.12', ext: 'jar'
+    //jenkinsTest group: 'org.jenkins-ci.main', name: 'jenkins-war', version:'2.46.2', ext: 'war'
+}
+
+/*
+ * specify a Jenkins version
+ * otherwise uses what is specified in 'jenkinsPlugin.coreVersion'
+ * -Pjenkins=${jenkins_version}
+ */
+if (project.hasProperty('jenkins')) {
+    jenkinsPlugin.coreVersion = project.getProperty('jenkins')
+}
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.0.2'
+}
