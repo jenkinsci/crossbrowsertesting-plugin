@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'org.jenkins-ci.plugins'
-version = '2.0.4-SNAPSHOT'
+version = '2.1.1-SNAPSHOT'
 description = """CrossBrowserTesting.com plugin"""
 
 sourceCompatibility = 1.8
@@ -46,12 +46,11 @@ jenkinsPlugin {
 dependencies {
     compile group: 'org.json', name: 'json', version:'20151123'
     compile group: 'commons-codec', name: 'commons-codec', version:'1.9'
-    compile group: 'com.github.crossbrowsertesting', name: 'ci-common', version:'0.29-SNAPSHOT'
+    compile group: 'com.github.crossbrowsertesting', name: 'ci-common', version:'0.30-SNAPSHOT'
     testCompile group: 'org.codehaus.mojo', name: 'findbugs-maven-plugin', version: '3.0.4'
 
     jenkinsPlugins group: 'org.jenkins-ci.plugins', name: 'junit', version: '1.9', ext: 'jar'
     jenkinsPlugins group: 'org.jenkins-ci.plugins', name: 'credentials', version: '2.1.12', ext: 'jar'
-    //jenkinsTest group: 'org.jenkins-ci.main', name: 'jenkins-war', version:'2.46.2', ext: 'war'
 }
 
 /*
