@@ -88,4 +88,4 @@ if (project.hasProperty('jenkins')) {
 task wrapper(type: Wrapper) {
     gradleVersion = '4.0.2'
 }
-release.dependsOn(publish)
+release.dependsOn(tasks.publish)
