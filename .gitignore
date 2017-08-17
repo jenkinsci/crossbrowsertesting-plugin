@@ -32,3 +32,9 @@ gradle-app.setting
 # IntelliJ Files
 .idea
 *.iml
+
+# Eclipse
+.settings/
+.classpath
+.metadata/
+
