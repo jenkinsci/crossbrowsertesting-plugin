@@ -1,12 +1,15 @@
+import java.util.regex.Matcher
+
 plugins {
     id 'org.jenkins-ci.jpi' version '0.22.0'
+    id 'net.researchgate.release' version '2.6.0'
     id 'java'
     id 'idea'
 }
 
 group = 'org.jenkins-ci.plugins'
-version = '2.1.1-SNAPSHOT'
-description = """CrossBrowserTesting.com plugin"""
+version = '2.1.1'
+description = """This plugin integrates Jenkins users with Selenium Testing on CrossBrowserTesting.com. CrossBrowserTesting.com provides cross browser testing of websites, webpages, and web applications on Windows, Macs, and real iPhones, iPads, and Android Phones and Tablets."""
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -19,7 +22,10 @@ repositories {
     mavenCentral()
     maven { url "https://jitpack.io" }
 }
-
+/*
+ * gradle-jpi
+ * https://github.com/jenkinsci/gradle-jpi-plugin/blob/master/README.md
+*/
 jenkinsPlugin {
     coreVersion = '2.5'
     displayName = 'CrossBrowserTesting.com Plugin'
@@ -40,6 +46,24 @@ jenkinsPlugin {
             name 'MIT License'
             url 'http://opensource.org/licenses/MIT'
         }
+    }
+}
+/*
+ * gradle-release
+ * https://github.com/researchgate/gradle-release/blob/master/README.md
+ */
+release {
+    failOnSnapshotDependencies = false
+    failOnUnversionedFiles = false
+    tagTemplate = '$name-$version'
+    buildTasks = ['build']
+    scmAdapters = [net.researchgate.release.GitAdapter]
+
+    git {
+        requireBranch = 'master'
+        pushToRemote = 'jenkins'
+        commitVersionFileOnly = false
+        signTag = false
     }
 }
 
