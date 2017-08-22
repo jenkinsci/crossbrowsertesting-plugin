@@ -10,11 +10,7 @@ import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
+import java.util.*;
 import java.nio.file.Path;
 
 import org.apache.commons.io.FileUtils;
@@ -33,9 +29,7 @@ import com.crossbrowsertesting.api.Account;
 import com.crossbrowsertesting.api.LocalTunnel;
 import com.crossbrowsertesting.plugin.Constants;
 import java.net.URISyntaxException;
-
-
-//import java.util.logging.Logger;
+import java.util.logging.Logger;
 
 @SuppressWarnings("serial")
 public class CBTBuildWrapper extends BuildWrapper implements Serializable {
@@ -53,7 +47,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     			   authkey = "";
     private boolean pluginStartedTunnel = false;
     
-    //private final static Logger log = Logger.getLogger(CBTBuildWrapper.class.getName());
+    private final static Logger log = Logger.getLogger(CBTBuildWrapper.class.getName());
 
     @DataBoundConstructor
     public CBTBuildWrapper(List<JSONObject> screenshotsTests, List<JSONObject> seleniumTests, boolean useLocalTunnel, boolean useTestResults, String credentialsId, String tunnelName) {
@@ -61,26 +55,59 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	 * Instantiated when the configuration is saved
     	 * Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
     	 */
-    	//System.out.println("in build wrapper");
-    	this.screenshotsTests = screenshotsTests;
-    	this.seleniumTests = seleniumTests;
-    	
-    	this.useLocalTunnel = useLocalTunnel;
-    	this.useTestResults = useTestResults;
+    	log.entering(this.getClass().getName(), "constructor");
+		if (screenshotsTests == null) { // prevent null pointer
+			log.fine("screenshotsTests is null");
+			this.screenshotsTests = new LinkedList<JSONObject>();
+		} else {
+			this.screenshotsTests = screenshotsTests;
+		}
+		if (seleniumTests == null) { // prevent null pointer
+			log.fine("seleniumTests is null");
+			this.seleniumTests = new LinkedList<JSONObject>();
+		} else {
+			this.seleniumTests = seleniumTests;
+		}
+
+		try { // prevent null pointer
+			if (useLocalTunnel != true) {
+				this.useLocalTunnel = false;
+			} else {
+				this.useLocalTunnel = useLocalTunnel;
+			}
+		} catch (NullPointerException npe) {
+			log.fine("useLocalTunnel is null");
+			this.useLocalTunnel = false;
+		}
+		try { // prevent null pointer
+			if (useTestResults != true) {
+				this.useTestResults = false;
+			} else {
+				this.useTestResults = useTestResults;
+			}
+		} catch (NullPointerException npe) {
+			log.fine("useTestResults is null");
+			this.useTestResults = false;
+		}
     	
     	this.tunnelName = tunnelName;
     	this.credentialsId = credentialsId;
     	
     	// reset the username and authkey for screenshots
+		log.fine("about to get credentials");
         final CBTCredentials credentials = CBTCredentials.getCredentials(null, credentialsId);
+        log.fine("got credentials");
         this.username = credentials.getUsername();
         this.authkey = credentials.getAuthkey();
+        log.fine("setting credentials");
         getDescriptor().setBuildCredentials(username, authkey);
 
     	//advanced options
     	//this.localTunnelPath = localTunnelPath;
     	//this.nodePath = nodePath;
-    }
+		log.exiting(this.getClass().getName(), "constructor");
+
+	}
 
     public List<JSONObject> getSeleniumTests() {
     	return this.seleniumTests;
@@ -106,6 +133,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     public String getTunnelName() {
     	return this.tunnelName;
     }
+
     private File downloadTunnelBinary(FilePath workspace) throws IOException {
     	URL tunnelBinaryAddress;
     	String binaryName;
@@ -140,13 +168,17 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	/*
     	 * called when you the build runs
     	 */
+		log.entering(this.getClass().getName(), "setup");
+		log.fine("about to get the credentials using the credentialId");
         final CBTCredentials credentials = CBTCredentials.getCredentials(build.getProject(), credentialsId);
         this.username = credentials.getUsername();
         this.authkey = credentials.getAuthkey();
         //track install
         Account account = new Account(username, authkey);
         account.init();
+        log.fine("testing the credentials");
         if (account.connectionSuccessful) {
+        	log.fine("sending a mixpanel event");
     		account.sendMixpanelEvent("Jenkins Plugin Downloaded");
         }
         
@@ -321,20 +353,27 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     		/*
     		 * Runs after the build
     		 */
+    		log.fine("in teardown");
 			HashMap<String, Queue<Map<String, String>>> seleniumEnvironments = new HashMap<String, Queue<Map<String, String>>>();
 			for (SeleniumBuildAction se : build.getActions(SeleniumBuildAction.class)) {
-				//System.out.println("build action stuff");
+				log.fine("found a selenium build action");
 				// this is to catch a user that puts the same configuration more than once
 				// instead of making the call to "/selenium" multiple times, it only calls it once and reuses the results
 					String key = se.getBrowser()+se.getOperatingSystem()+se.getResolution();
 					
 					String buildName = se.getBuildName();
+					log.fine("buildName: "+buildName);
 					String buildNumber = se.getBuildNumber();
+					log.fine("buildNumber: "+buildNumber);
 					String browserApiName = se.getBrowser();
+					log.fine("browserApiName: "+browserApiName);
 					String osApiName = se.getOperatingSystem();
+					log.fine("osApiName: "+osApiName);
 					String resolution = se.getResolution();
+					log.fine("resolution: "+resolution);
 					
 					if (!seleniumEnvironments.containsKey(key)) {
+						log.fine("going to get the selenium test info");
 						Queue<Map<String, String>> tests = getDescriptor().seleniumApi.getSeleniumTestInfo2(buildName, buildNumber, browserApiName, osApiName, resolution);
 						seleniumEnvironments.put(key, tests);
 					}
@@ -343,11 +382,14 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 					String publicUrl = "";
 					try {
 						seleniumTestId = testInfo.get("selenium_test_id");
+						log.fine("seleniumTestId: "+ seleniumTestId);
 						publicUrl = testInfo.get("show_result_public_url");
-					}catch (NullPointerException npe) {}
+						log.fine("publicUrl: "+publicUrl);
+					}catch (NullPointerException npe) {
+						log.fine("got null pointer from seleniumTestId or publicUrl");
+					}
 					String jenkinsVersion = build.getHudsonVersion();
 					String pluginVersion = getDescriptor().getVersion();
-
 					se.setTestId(seleniumTestId);
 					se.setTestPublicUrl(publicUrl);
 					se.setTestUrl(seleniumTestId);
@@ -361,11 +403,12 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 			boolean isAtLeastOneScreenshotTestActive;
 			int count = 1;
 			do {
-				if (count == 1) { // no need to spam the logs with this print statement
-					listener.getLogger().println("trying to see if there are still screenshots running");
-				}
 				isAtLeastOneScreenshotTestActive = false;
 				for (ScreenshotsBuildAction ss : build.getActions(ScreenshotsBuildAction.class)) {
+					log.fine("found a screenshot test");
+					if (count == 1) { // no need to spam the logs with this print statement
+						listener.getLogger().println("trying to see if there are still screenshots running");
+					}
 					// checks each screenshot_test_id to see if the test is finished
 					if(getDescriptor().screenshotApi.isTestRunning(ss.getTestId())) {
 						if (count == 1) { // no need to spam the logs with this print statement
@@ -378,16 +421,22 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 				count++;
 				// if any of the tests say they are still running. try again
 			}while(isAtLeastOneScreenshotTestActive);
-			if (tunnel.pluginStartedTheTunnel) {
+			if (tunnel != null && tunnel.pluginStartedTheTunnel) {
 				try {
+					log.info("about to kill the tunnel using the api");
 					tunnel.stop();
+					log.info("done killing the tunnel using the api");
 				}catch(IOException ioe) {
-					// most likely got a bad gatewat but we're going to delete the cbt_tunnel binary on exit anyway so the tunnel will still be killed
+					// most likely got a bad gateway but we're going to delete the cbt_tunnel binary on exit anyway so the tunnel will still be killed
+					log.warning("got IOException while killing the tunnel");
 				}
     			for (int i=1 ; i<20 && tunnel.isTunnelRunning; i++) {
     				//will check every 15 seconds for up to 5 minutes to see if the tunnel disconnected
+					log.fine("waiting for the tunnel to die");
     				Thread.sleep(15000);
-    				tunnel.queryTunnel();
+    				boolean tunnelIsRunning = tunnel.queryTunnel();
+    				log.fine("tunnelIsRunning: "+tunnelIsRunning);
+    				log.fine("tunnel.isTunnelRunning: "+tunnel.isTunnelRunning);
     			}
     			if (!tunnel.isTunnelRunning) {
     				listener.getLogger().println(Constants.TUNNEL_STOP);
