@@ -1,12 +1,12 @@
 package org.jenkinsci.plugins.cbt_jenkins;
 
 import java.io.IOException;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
 
 import com.cloudbees.plugins.credentials.common.StandardUsernameListBoxModel;
 import com.crossbrowsertesting.api.Account;
@@ -24,7 +24,6 @@ import hudson.tasks.BuildWrapperDescriptor;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
-import net.sf.json.JSONObject;
 
 @Extension // This indicates to Jenkins that this is an implementation of an extension point.
 public final class CBTDescriptor extends BuildWrapperDescriptor {
@@ -34,6 +33,7 @@ public final class CBTDescriptor extends BuildWrapperDescriptor {
     				buildAuthkey = "";
 	Screenshots screenshotApi;
 	Selenium seleniumApi = new Selenium();
+	private final static Logger log = Logger.getLogger(CBTDescriptor.class.getName());
     
 	public CBTDescriptor() throws IOException {
 		/*
@@ -88,14 +88,32 @@ public final class CBTDescriptor extends BuildWrapperDescriptor {
 	public boolean isApplicable(AbstractProject<?, ?> item) {
 		return true;
 	}
-	
-	public String getVersion() {
+
+	@Deprecated
+	public String getVersionOld() {
+		log.entering(this.getClass().getName(), "getVersion");
 		/*
 		 * Get the version of plugin
 		 */
 		String fullVersion = getPlugin().getVersion();
+		log.finest("fullVersion: "+fullVersion);
 		String stuffToIgnore = fullVersion.split("^\\d+[\\.]?\\d*")[1];
-		return fullVersion.substring(0, fullVersion.indexOf(stuffToIgnore));
+		log.finest("stuffToIgnore: "+stuffToIgnore);
+		String pluginVersion = fullVersion.substring(0, fullVersion.indexOf(stuffToIgnore));
+		log.finest("pluginVersion: "+pluginVersion);
+		log.exiting(this.getClass().getName(), "getVersion");
+		return pluginVersion;
+	}
+
+	public String getVersion() {
+		/*
+		 * Get the version of plugin
+		 */
+		log.entering(this.getClass().getName(), "getVersion");
+		String pluginVersion = getPlugin().getVersion();
+		log.finest("pluginVersion: "+pluginVersion);
+		log.exiting(this.getClass().getName(), "getVersion");
+		return pluginVersion;
 	}
 	public void checkProxySettingsAndReloadRequest(ApiFactory af) {
     	// gets the proxy settings and reloads the Api Requests with them
