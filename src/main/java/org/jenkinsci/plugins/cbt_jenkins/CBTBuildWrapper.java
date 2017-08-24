@@ -237,7 +237,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     			String screenshotsUrl = ssTest.getString("url");
 				HashMap<String, String> screenshotTestResultsInfo = new HashMap<String, String>();
 				boolean screenshotsTestStarted = false;
-    			for (int i=1; i<=5 && !screenshotsTestStarted;i++) {
+    			for (int i=1; i<=12 && !screenshotsTestStarted;i++) { // in windows it takes 4 -5 attempts before the screenshots test begins
 					screenshotTestResultsInfo = getDescriptor().screenshotApi.runScreenshotTest(screenshotsBrowserList, screenshotsUrl);
 					if (screenshotTestResultsInfo.containsKey("screenshot_test_id") && screenshotTestResultsInfo.get("screenshot_test_id") != null) {
 						log.info("screenshot test started: "+ screenshotTestResultsInfo.get("screenshot_test_id"));
