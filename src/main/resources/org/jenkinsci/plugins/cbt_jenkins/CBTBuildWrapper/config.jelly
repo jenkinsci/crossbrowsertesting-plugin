@@ -59,16 +59,10 @@
   	<c:select default="${instance.credentialsId()}"/>
   </f:entry>
   <f:advanced>
-  <!--
-     <f:entry title="Node Path" field="nodePath">
-  		<f:textbox value="${instance.nodePath()}" />
-  	</f:entry>
-  -->
-  	<f:entry title="Local Tunnel Binary Path" field="localTunnelPath">
+  	<f:entry title="Local Tunnel Binary Path" field="localTunnelPath" description="Full path to a preinstalled cbt_tunnel binary. If left blank, the plugin will use an embedded cbt_tunnel.">
   		<f:textbox value="${instance.localTunnelPath()}" />
   	</f:entry>
-
-  	<f:entry title="Tunnel Name" field="tunnelName" description="Specify a name for the cbt_tunnel">
+  	<f:entry title="Tunnel Name" field="tunnelName" description="Specify a name for the cbt_tunnel. If left blank, the plugin will use the default cbt_tunnel.">
   		<f:textbox value="${instance.tunnelName()}" />
   	</f:entry>
   </f:advanced>

@@ -20,13 +20,16 @@ Wiki: https://wiki.jenkins-ci.org/display/JENKINS/CrossBrowserTesting+Plugin
 
 ##### Requirements:
 - [JDK][java] &#8805; 8
-- [Maven][maven] &#8805; 3
 
-<pre>mvn hpi:run</pre>
-##### To release
-Make sure the pom.xml file's version has the new point release and has **-SNAPSHOT**
-<pre> mvn release:prepare release:perform </pre>
+<pre>gradlew server</pre>
+###### to specify the version of jenkins:
+<pre>gradlew server Pjenkins=${jenkins_version}</pre>
+##### To release:
+make sure all code has been committed to your local git repo
+<pre>gradlew publish release</pre>
+credentials for the publish should be in a file [~/.jenkins-ci.org][jenkins_credentials_documentation]
 
+[jenkins_credentials_documentation]: https://wiki.jenkins.io/display/JENKINS/Dot+Jenkins+Ci+Dot+Org
 [latest_version]: http://updates.jenkins-ci.org/latest/crossbrowsertesting.hpi
 [maven]: https://maven.apache.org/index.html
 [java]: http://www.oracle.com/technetwork/java/javase/downloads/index.html
