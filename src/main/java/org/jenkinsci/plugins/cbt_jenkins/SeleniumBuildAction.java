@@ -10,7 +10,7 @@ public class SeleniumBuildAction extends AbstractBuildAction {
     			   buildName,
     			   buildNumber;
 
-	SeleniumBuildAction(final boolean showLink, final String os, final String browser, final String resolution) {
+	public SeleniumBuildAction(final boolean showLink, final String os, final String browser, final String resolution) {
 		super("Selenium");
         this.operatingSystemApiName = os;
         this.browserApiName = browser;

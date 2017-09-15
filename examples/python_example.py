@@ -13,7 +13,7 @@ caps['build'] = os.environ.get("CBT_BUILD_NUMBER")
 caps['browser_api_name'] = os.environ.get("CBT_BROWSER")
 caps['os_api_name'] = os.environ.get("CBT_OPERATING_SYSTEM")
 caps['screen_resolution'] = os.environ.get("CBT_RESOLUTION")
-
+caps['record_video'] = 'true'
 
 class SeleniumCBT(unittest.TestCase):
     def setUp(self):

@@ -17,7 +17,9 @@
 	}
 	</style>
     <l:layout>
-        <st:include it="${it.build}" page="sidepanel.jelly"/>
+        <j:if test="${it.build != null}">
+            <st:include it="${it.build}" page="sidepanel.jelly"/>
+        </j:if>
         <l:main-panel>
  			<div class="iframe-container">
             	<iframe src="${it.testPublicUrl}" height="1000" width="1024"></iframe>

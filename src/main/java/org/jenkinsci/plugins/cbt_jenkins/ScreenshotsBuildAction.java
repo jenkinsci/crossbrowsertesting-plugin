@@ -16,7 +16,7 @@ public class ScreenshotsBuildAction  extends AbstractBuildAction {
 	
 	private HashMap<String, String> testinfo;
 	
-	ScreenshotsBuildAction(final boolean showLink, final String browserList, final String url) {
+	public ScreenshotsBuildAction(final boolean showLink, final String browserList, final String url) {
 		super("Screenshots");
 		log.entering(this.getClass().getName(), "contructor");
 		this.showLink = showLink;
@@ -52,7 +52,13 @@ public class ScreenshotsBuildAction  extends AbstractBuildAction {
 		log.finest("testPublicUrl: "+getTestPublicUrl());
     	if (this.showLink) {
     		log.finest("showLink: "+this.showLink);
-    		setDisplayName("CBT Screenshots Test (" + info.get("browser_list") + " " + info.get("url") + ")");
+    		if (info.containsKey("browser_list") && !info.get("browser_list").equals(browserList)) {
+    			browserList = info.get("browser_list");
+			}
+			if (info.containsKey("url") && !info.get("url").equals(url)) {
+				url = info.get("url");
+			}
+    		setDisplayName("CBT Screenshots Test (" + browserList + " " + url + ")");
     		log.finest("displayName: "+this.getDisplayName());
     		this.iconFileName = "/plugin/crossbrowsertesting/img/cbtlogo.png";
     		setTestUrl(testid); // using the test id as the results url because it is unique

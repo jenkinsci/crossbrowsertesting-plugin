@@ -12,6 +12,7 @@ caps['build'] = ENV["CBT_BUILD_NUMBER"]
 caps['browser_api_name'] = ENV["CBT_BROWSER"]
 caps['os_api_name'] = ENV["CBT_OPERATING_SYSTEM"]
 caps['screen_resolution'] = ENV["CBT_RESOLUTION"]
+caps["record_video"] = "true"
 
 driver = Selenium::WebDriver.for(:remote, 
 :url => "http://#{username}:#{key}@hub.crossbrowsertesting.com:80/wd/hub",

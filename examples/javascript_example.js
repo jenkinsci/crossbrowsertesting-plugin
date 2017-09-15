@@ -12,7 +12,8 @@ var caps = {
     screen_resolution : process.env.CBT_RESOLUTION,
     browserName : process.env.CBT_BROWSERNAME,
     username : process.env.CBT_USERNAME,
-    password : process.env.CBT_APIKEY
+    password : process.env.CBT_APIKEY,
+    record_video: true
 };
  
 var cs = "http://hub.crossbrowsertesting.com:80/wd/hub";
