@@ -31,13 +31,11 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     private List <JSONObject> seleniumTests,
     						  screenshotsTests;
     private String localTunnelPath,
-    			   nodePath,
     			   tunnelName,
     			   credentialsId,
     			   username,
     			   authkey = "";
-    private boolean pluginStartedTunnel = false;
-    
+
     private final static Logger log = Logger.getLogger(CBTBuildWrapper.class.getName());
 
     @DataBoundConstructor
@@ -47,60 +45,17 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	 * Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
     	 */
     	log.entering(this.getClass().getName(), "constructor");
-		if (screenshotsTests == null) { // prevent null pointer
-			log.finest("screenshotsTests is null");
-			this.screenshotsTests = new LinkedList<JSONObject>();
-		} else {
-			this.screenshotsTests = screenshotsTests;
-			log.finest("screenshotsTest: "+screenshotsTests.toString());
-		}
-		if (seleniumTests == null) { // prevent null pointer
-			log.finest("seleniumTests is null");
-			this.seleniumTests = new LinkedList<JSONObject>();
-		} else {
-			log.finest("seleniumTests: "+seleniumTests.toString());
-			this.seleniumTests = seleniumTests;
-		}
+		setScreenshotsTests(screenshotsTests);
+		setSeleniumTests(seleniumTests);
+		setUseLocalTunnel(useLocalTunnel);
+		setUseTestResults(useTestResults);
 
-		try { // prevent null pointer
-			if (useLocalTunnel != true) {
-				this.useLocalTunnel = false;
-			} else {
-				this.useLocalTunnel = useLocalTunnel;
-			}
-		} catch (NullPointerException npe) {
-			log.finest("useLocalTunnel is null");
-			this.useLocalTunnel = false;
-		}
-		try { // prevent null pointer
-			if (useTestResults != true) {
-				this.useTestResults = false;
-			} else {
-				this.useTestResults = useTestResults;
-			}
-		} catch (NullPointerException npe) {
-			log.finest("useTestResults is null");
-			this.useTestResults = false;
-		}
-    	
-    	this.tunnelName = tunnelName;
-    	this.credentialsId = credentialsId;
-    	
     	// reset the username and authkey for screenshots
-		log.fine("about to get credentials");
-        final CBTCredentials credentials = CBTCredentials.getCredentials(null, credentialsId);
-        log.fine("got credentials");
-        this.username = credentials.getUsername();
-        this.authkey = credentials.getAuthkey();
-        log.fine("setting credentials");
-        getDescriptor().setBuildCredentials(username, authkey);
-
+		setCredentials(credentialsId);
     	//advanced options
-		log.finer("localTunnelPath: "+localTunnelPath);
-    	this.localTunnelPath = localTunnelPath;
-    	//this.nodePath = nodePath;
+		setTunnelName(tunnelName);
+    	setLocalTunnelPath(localTunnelPath);
 		log.exiting(this.getClass().getName(), "constructor");
-
 	}
 
     public List<JSONObject> getSeleniumTests() {
@@ -118,9 +73,6 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     public String getLocalTunnelPath() {
     	return this.localTunnelPath;
     }
-    public String getNodePath() {
-    	return this.nodePath;
-    }
     public String getCredentialsId() {
     	return this.credentialsId;
     }
@@ -128,34 +80,73 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	return this.tunnelName;
     }
 
-    private File downloadTunnelBinary(FilePath workspace) throws IOException {
-    	URL tunnelBinaryAddress;
-    	String binaryName;
-		if (System.getProperty("os.name").toLowerCase().contains("mac")) { // mac
-			tunnelBinaryAddress = new URL("https://github.com/crossbrowsertesting/cbt-tunnel-nodejs/releases/download/v0.1.0/cbt-tunnels-macos");
-			binaryName = "cbt_tunnels";
-		}else if (System.getProperty("os.name").toLowerCase().contains("win")) { // windows
-			tunnelBinaryAddress = new URL("https://github.com/crossbrowsertesting/cbt-tunnel-nodejs/releases/download/v0.1.0/cbt-tunnels-win.exe");
-			binaryName = "cbt_tunnels.exe";
-		}else if (System.getProperty("os.name").toLowerCase().contains("nix") ||
-				System.getProperty("os.name").toLowerCase().contains("nux") ||
-				System.getProperty("os.name").toLowerCase().contains("aix")) { // linux / unix ?
-			tunnelBinaryAddress = new URL("https://github.com/crossbrowsertesting/cbt-tunnel-nodejs/releases/download/v0.1.0/cbt-tunnels-ubuntu");
-			binaryName = "cbt_tunnels";
-		}else {
-			return null;
+    private void setSeleniumTests(List<JSONObject> seleniumTests) {
+		if (seleniumTests == null) { // prevent null pointer
+			log.finest("seleniumTests is null");
+			this.seleniumTests = new LinkedList<JSONObject>();
+		} else {
+			log.finest("seleniumTests: "+seleniumTests.toString());
+			this.seleniumTests = seleniumTests;
 		}
-		File binary = new File(workspace.toString(), binaryName);
-    	FileUtils.copyURLToFile(tunnelBinaryAddress, binary);
-		if (System.getProperty("os.name").toLowerCase().contains("mac") ||
-				System.getProperty("os.name").toLowerCase().contains("nix") ||
-				System.getProperty("os.name").toLowerCase().contains("nux") ||
-				System.getProperty("os.name").toLowerCase().contains("aix")) { //unix needs executable permission
-			binary.setExecutable(true);			
+	}
+	private void setScreenshotsTests(List<JSONObject> screenshotsTests) {
+		if (screenshotsTests == null) { // prevent null pointer
+			log.finest("screenshotsTests is null");
+			this.screenshotsTests = new LinkedList<JSONObject>();
+		} else {
+			this.screenshotsTests = screenshotsTests;
+			log.finest("screenshotsTest: "+screenshotsTests.toString());
 		}
-				
-    	return binary;
-    }
+	}
+	private void setLocalTunnelPath(String localTunnelPath) {
+		if (localTunnelPath == null) {
+			this.localTunnelPath = "";
+		} else {
+			this.localTunnelPath = localTunnelPath;
+		}
+		log.finer("localTunnelPath: "+localTunnelPath);
+	}
+	private void setTunnelName(String tunnelName) {
+		if (tunnelName == null) {
+			this.tunnelName = "";
+		} else {
+			this.tunnelName = tunnelName;
+		}
+		log.finer("tunnelName: "+tunnelName);
+	}
+	private void setUseLocalTunnel(boolean useLocalTunnel) {
+		try { // prevent null pointer
+			if (useLocalTunnel != true) {
+				this.useLocalTunnel = false;
+			} else {
+				this.useLocalTunnel = useLocalTunnel;
+			}
+		} catch (NullPointerException npe) {
+			this.useLocalTunnel = false;
+		}
+	}
+	private void setUseTestResults(boolean useTestResults) {
+		try { // prevent null pointer
+			if (useTestResults != true) {
+				this.useTestResults = false;
+			} else {
+				this.useTestResults = useTestResults;
+			}
+		} catch (NullPointerException npe) {
+			this.useTestResults = false;
+		}
+	}
+	private void setCredentials(String credentialsId) {
+		this.credentialsId = credentialsId;
+		log.fine("about to get credentials");
+		final CBTCredentials credentials = CBTCredentials.getCredentials(null, credentialsId);
+		log.fine("got credentials");
+		this.username = credentials.getUsername();
+		this.authkey = credentials.getAuthkey();
+		log.fine("setting credentials");
+		getDescriptor().setBuildCredentials(username, authkey);
+	}
+
     @SuppressWarnings("rawtypes")
 	@Override
     public Environment setUp(final AbstractBuild build, Launcher launcher, final BuildListener listener) throws IOException, InterruptedException {
@@ -185,20 +176,11 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
         	listener.getLogger().println(Constants.TUNNEL_USING_DEFAULT);
         	tunnel = new LocalTunnel(username, authkey);
         }
-    	//tunnel.queryTunnel();
-    	//getDescriptor().checkProxySettingsAndReloadRequest(tunnel);
     	if (useLocalTunnel) {
-
-    		//File binary = downloadTunnelBinary(build.getWorkspace());
         	tunnel.queryTunnel();
         	getDescriptor().checkProxySettingsAndReloadRequest(tunnel);
     		if (!tunnel.isTunnelRunning) {
     			listener.getLogger().println(Constants.TUNNEL_NEED_TO_START);
-    		//	Launcher.ProcStarter tunnelProcess = launcher.launch();
-    		//	tunnelProcess.cmdAsSingleString(buildStartTunnelCommand(binary.getAbsolutePath()));
-    		//	pluginStartedTunnel = true;
-    			//tunnelProcess.start();
-    			//tunnel.start(nodePath, localTunnelPath);
 				try {
 					if (localTunnelPath != null && localTunnelPath.equals("")) {
 						log.fine("using embedded local tunnel");
@@ -231,14 +213,27 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	if (screenshotsTests != null && !screenshotsTests.isEmpty()) {
     		Iterator<JSONObject> screenshotsIterator = screenshotsTests.iterator();
     		while(screenshotsIterator.hasNext()) {
-    			//System.out.println("in screenshot loop");
 	    		JSONObject ssTest = screenshotsIterator.next();
     			String screenshotsBrowserList = ssTest.getString("browserList");
-    			String screenshotsUrl = ssTest.getString("url");
+    			if (screenshotsBrowserList.equals("**SELECT A BROWSERLIST*") || screenshotsBrowserList.isEmpty()) {
+    				screenshotsBrowserList = "";
+				}
+				String screenshotsLoginProfile = ssTest.getString("loginProfile");
+    			boolean useLoginProfile = true;
+				if (screenshotsLoginProfile.equals("**SELECT A LOGIN PROFILE / SELENIUM SCRIPT**") || screenshotsLoginProfile.isEmpty()) {
+					useLoginProfile = false;
+					screenshotsLoginProfile = "";
+				}
+
+				String screenshotsUrl = ssTest.getString("url");
 				HashMap<String, String> screenshotTestResultsInfo = new HashMap<String, String>();
 				boolean screenshotsTestStarted = false;
     			for (int i=1; i<=12 && !screenshotsTestStarted;i++) { // in windows it takes 4 -5 attempts before the screenshots test begins
-					screenshotTestResultsInfo = getDescriptor().screenshotApi.runScreenshotTest(screenshotsBrowserList, screenshotsUrl);
+					if (useLoginProfile) {
+						screenshotTestResultsInfo = getDescriptor().screenshotApi.runScreenshotTest(screenshotsBrowserList, screenshotsUrl, screenshotsLoginProfile);
+					}else {
+						screenshotTestResultsInfo = getDescriptor().screenshotApi.runScreenshotTest(screenshotsBrowserList, screenshotsUrl);
+					}
 					if (screenshotTestResultsInfo.containsKey("screenshot_test_id") && screenshotTestResultsInfo.get("screenshot_test_id") != null) {
 						log.info("screenshot test started: "+ screenshotTestResultsInfo.get("screenshot_test_id"));
 						screenshotsTestStarted = true;
@@ -255,6 +250,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 					ScreenshotsBuildAction ssBuildAction = new ScreenshotsBuildAction(useTestResults, screenshotsBrowserList, screenshotsUrl);
 					ssBuildAction.setBuild(build);
 					ssBuildAction.setTestinfo(screenshotTestResultsInfo);
+					ssBuildAction.setLoginProfile(screenshotsLoginProfile);
 		    		build.addAction(ssBuildAction);
 		    		if (!screenshotTestResultsInfo.isEmpty()) {
 		    			listener.getLogger().println("\n-----------------------");
@@ -269,25 +265,6 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	}
     	return new CBTEnvironment(build);
     }
-    private String buildStartTunnelCommand(String tunnelPath) {
-    	if (tunnelPath == null) {
-    		tunnelPath = "cbt_tunnels";
-    	}
-        String startTunnelCmd = "\"" + tunnelPath + "\" --username " + username + " --authkey " + authkey;
-        if (!tunnelName.isEmpty()) {
-        	startTunnelCmd += " --tunnelname "+ tunnelName;
-        }
-        if (tunnel.useProxy()) {
-        	startTunnelCmd += " --proxyPort " + Integer.toString(tunnel.proxyPort());
-			String proxyUrl = tunnel.proxyUrl();
-			if (tunnel.useProxyCredentials()) {
-				proxyUrl = tunnel.proxyUsername() + ":" + tunnel.proxyPassword() + "@" + proxyUrl;
-			}
-			startTunnelCmd += " --proxyIp " + proxyUrl;
-        }
-    	return startTunnelCmd;
-    }
-
 
     @Override
     public CBTDescriptor getDescriptor() {

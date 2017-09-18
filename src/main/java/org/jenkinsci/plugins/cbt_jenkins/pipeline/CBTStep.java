@@ -33,14 +33,50 @@ public class CBTStep extends AbstractStepImpl {
             tunnelName = "";
 
     @DataBoundConstructor
-    public CBTStep(boolean useLocalTunnel, boolean useTestResults, String credentialsId) {
-    //public CBTStep(boolean useLocalTunnel, String credentialsId, String localTunnelPath, String tunnelName) {
-        this.useLocalTunnel = useLocalTunnel;
+    public CBTStep(boolean useLocalTunnel, boolean useTestResults, String credentialsId, String tunnelName, String localTunnelPath) {
         this.credentialsId = credentialsId;
-        this.useTestResults = useTestResults;
-        //this.localTunnelPath = localTunnelPath;
-        //this.tunnelName = tunnelName;
+        setLocalTunnelPath(localTunnelPath);
+        setTunnelName(tunnelName);
+        setUseLocalTunnel(useLocalTunnel);
+        setUseTestResults(useTestResults);
     }
+    private void setLocalTunnelPath(String localTunnelPath) {
+        if (localTunnelPath == null) {
+            this.localTunnelPath = "";
+        } else {
+            this.localTunnelPath = localTunnelPath;
+        }
+    }
+    private void setTunnelName(String tunnelName) {
+        if (tunnelName == null) {
+            this.tunnelName = "";
+        } else {
+            this.tunnelName = tunnelName;
+        }
+    }
+    private void setUseLocalTunnel(boolean useLocalTunnel) {
+        try { // prevent null pointer
+            if (useLocalTunnel != true) {
+                this.useLocalTunnel = false;
+            } else {
+                this.useLocalTunnel = useLocalTunnel;
+            }
+        } catch (NullPointerException npe) {
+            this.useLocalTunnel = false;
+        }
+    }
+    private void setUseTestResults(boolean useTestResults) {
+        try { // prevent null pointer
+            if (useTestResults != true) {
+                this.useTestResults = false;
+            } else {
+                this.useTestResults = useTestResults;
+            }
+        } catch (NullPointerException npe) {
+            this.useTestResults = false;
+        }
+    }
+
     public static class CBTStepExecution extends AbstractStepExecutionImpl {
         private transient final static Logger log = Logger.getLogger(CBTStepExecution.class.getName());
         @StepContextParameter private transient Run<?,?> run;
@@ -67,23 +103,25 @@ public class CBTStep extends AbstractStepImpl {
                 authkey = credentials.getAuthkey();
                 log.finest("authkey = "+authkey);
                 if (step.useLocalTunnel) {
-                    tunnel = new LocalTunnel(username, authkey);
-                    tunnel.queryTunnel();
+                    if (!step.tunnelName.isEmpty()) {
+                        listener.getLogger().println(Constants.TUNNEL_USING_TUNNELNAME(step.tunnelName));
+                        tunnel = new LocalTunnel(username, authkey, step.tunnelName);
+                    }else if(step.tunnelName.isEmpty()){
+                        listener.getLogger().println(Constants.TUNNEL_USING_DEFAULT);
+                        tunnel = new LocalTunnel(username, authkey);
+                    }
                     CBTStepDescriptor.checkProxySettingsAndReloadRequest(tunnel);
+                    tunnel.queryTunnel();
                     if (!tunnel.isTunnelRunning) {
                         listener.getLogger().println(Constants.TUNNEL_NEED_TO_START);
                         try {
-
-                            //if (localTunnelPath != null && localTunnelPath.equals("")) {
+                            if (step.localTunnelPath != null && step.localTunnelPath.equals("")) {
                                 log.fine("using embedded local tunnel");
                                 tunnel.start(true);
-                                /*
                             } else {
                                 log.fine("using specified local tunnel");
-                                tunnel.start(localTunnelPath);
+                                tunnel.start(step.localTunnelPath);
                             }
-                            */
-
                             listener.getLogger().println(Constants.TUNNEL_WAITING);
                             for (int i=1 ; i<15 && !tunnel.isTunnelRunning ; i++) {
                                 //will check every 2 seconds for upto 30 to see if the tunnel connected

@@ -14,10 +14,17 @@
     <f:entry title="Screenshots Tests">
    	<f:repeatable items="${instance.screenshotsTests}" var="screenshotsTests" add="Add a Screenshots Test">
   		<table width="100%">
-  			<f:entry name="screenshotsBrowserList" title="Browser List" field="browserList" >
+  			<f:entry name="screenshotsBrowserList" title="Browser List" field="browserList"
+					 description="Required: Name of a list of browsers"
+					 help="/plugin/crossbrowsertesting/help/screenshots_browserlist.html" >
  				<f:select value="${screenshotsTests.browserList}"/>
  			</f:entry>
- 			<f:entry name="screenshotsUrl" title="URL" field="url" >
+			<f:entry name="screenshotsLoginProfile" title="Login Profile / Selenium Script" field="loginProfile"
+					 description="Optional: Name of a saved login profile or selenium script."
+					 help="/plugin/crossbrowsertesting/help/screenshots_loginprofile.html">
+				<f:select value="${screenshotsTests.loginProfile}"/>
+			</f:entry>
+ 			<f:entry name="screenshotsUrl" title="URL" field="url" description="Required: Url to run the screenshots against." >
  				<f:textbox value="${screenshotsTests.url}" />
  			</f:entry>
     		<f:entry title="">
@@ -49,20 +56,25 @@
   		</table>
  	</f:repeatable>
   </f:entry>
-  <f:entry title="Use Local Tunnel" description="Runs the nodejs cbt_tunnels module" help="/plugin/crossbrowsertesting/help/localtunnel.html" field="useLocalTunnel">
+  <f:entry title="Use Local Tunnel" field="useLocalTunnel"
+		   description="Runs the nodejs cbt_tunnels module"
+		   help="/plugin/crossbrowsertesting/help/localtunnel.html">
     <f:checkbox value="${instance.useLocalTunnel()}"/>
   </f:entry>
-  <f:entry title="Enable Test Results Pages" description="As tests finish, links will populate on the sidebar of the build that allow you to view the results from the test." field="useTestResults">
+  <f:entry title="Enable Test Results Pages" field="useTestResults"
+		   description="As tests finish, links will populate on the sidebar of the build that allow you to view the results from the test.">
     <f:checkbox value="${instance.useTestResults()}"/>
   </f:entry>
   <f:entry title="CBT Credentials" field="credentialsId">
   	<c:select default="${instance.credentialsId()}"/>
   </f:entry>
   <f:advanced>
-  	<f:entry title="Local Tunnel Binary Path" field="localTunnelPath" description="Full path to a preinstalled cbt_tunnel binary. If left blank, the plugin will use an embedded cbt_tunnel.">
+  	<f:entry title="Local Tunnel Binary Path" field="localTunnelPath"
+			 description="Full path to a preinstalled cbt_tunnel binary. If left blank, the plugin will use an embedded cbt_tunnel.">
   		<f:textbox value="${instance.localTunnelPath()}" />
   	</f:entry>
-  	<f:entry title="Tunnel Name" field="tunnelName" description="Specify a name for the cbt_tunnel. If left blank, the plugin will use the default cbt_tunnel.">
+  	<f:entry title="Tunnel Name" field="tunnelName"
+			 description="Specify a name for the cbt_tunnel. If left blank, the plugin will use the default cbt_tunnel.">
   		<f:textbox value="${instance.tunnelName()}" />
   	</f:entry>
   </f:advanced>

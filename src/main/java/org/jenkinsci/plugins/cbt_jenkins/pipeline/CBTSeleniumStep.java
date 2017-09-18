@@ -210,6 +210,7 @@ public class CBTSeleniumStep extends AbstractStepImpl {
         public ListBoxModel doFillOperatingSystemItems() {
             checkProxySettingsAndReloadRequest(seleniumApi);
             ListBoxModel items = new ListBoxModel();
+            items.add("**SELECT AN OPERATING SYSTEM**", "");
             try {
                 for (int i=0 ; i<seleniumApi.operatingSystems.size() ; i++) {
                     OperatingSystem config = seleniumApi.operatingSystems.get(i);
@@ -220,6 +221,9 @@ public class CBTSeleniumStep extends AbstractStepImpl {
         }
         public ListBoxModel doFillBrowserItems(@QueryParameter("operatingSystem") final String operating_system) {
             ListBoxModel items = new ListBoxModel();
+            if (operating_system.isEmpty()) {
+                items.add("**SELECT AN OPERATING SYSTEM**", "");
+            }
             try {
                 OperatingSystem config = seleniumApi.operatingSystems2.get(operating_system);
                 for (int i=0 ; i<config.browsers.size() ; i++) {
@@ -231,6 +235,9 @@ public class CBTSeleniumStep extends AbstractStepImpl {
         }
         public ListBoxModel doFillResolutionItems(@QueryParameter("operatingSystem") final String operating_system) {
             ListBoxModel items = new ListBoxModel();
+            if (operating_system.isEmpty()) {
+                items.add("**SELECT AN OPERATING SYSTEM**", "");
+            }
             try {
                 OperatingSystem config = seleniumApi.operatingSystems2.get(operating_system);
                 for (int i=0 ; i<config.resolutions.size() ; i++) {

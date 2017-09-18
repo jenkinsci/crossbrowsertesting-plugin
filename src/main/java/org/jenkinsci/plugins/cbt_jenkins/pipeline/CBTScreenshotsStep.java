@@ -34,11 +34,12 @@ public class CBTScreenshotsStep extends AbstractStepImpl {
     private static CBTCredentials credentials;
 
     private String credentialsId = "";
-    public String browserList, url = "";
+    public String browserList, loginProfile,  url = "";
 
     @DataBoundConstructor
-    public CBTScreenshotsStep(String browserList, String url) {
+    public CBTScreenshotsStep(String browserList, String loginProfile, String url) {
         this.browserList = browserList;
+        this.loginProfile = loginProfile;
         this.url = url;
 
     }
@@ -84,6 +85,7 @@ public class CBTScreenshotsStep extends AbstractStepImpl {
             log.finest("username="+username);
             log.finest("authkey="+authkey);
             log.finest("browserList="+step.browserList);
+            log.finest("loginProfile"+step.loginProfile);
             log.finest("url="+step.url);
 
             boolean useTestResult = getContext().get(Boolean.class);
@@ -111,9 +113,18 @@ public class CBTScreenshotsStep extends AbstractStepImpl {
             @Override
             public void run() {
                 HashMap<String, String> screenshotTestResultsInfo = new HashMap<String, String>();
+                boolean useLoginProfile = true;
+                if (step.loginProfile == null || step.loginProfile.equals("**SELECT A LOGIN PROFILE / SELENIUM SCRIPT**") || step.loginProfile.isEmpty()) {
+                    useLoginProfile = false;
+                    step.loginProfile = "";
+                }
                 boolean screenshotsTestStarted = false;
                 for (int i=1; i<=12 && !screenshotsTestStarted;i++) { // in windows it takes 4 -5 attempts before the screenshots test begins
-                    screenshotTestResultsInfo = screenshotsApi.runScreenshotTest(step.browserList, step.url);
+                    if (useLoginProfile) {
+                        screenshotTestResultsInfo = screenshotsApi.runScreenshotTest(step.browserList, step.url, step.loginProfile);
+                    } else {
+                        screenshotTestResultsInfo = screenshotsApi.runScreenshotTest(step.browserList, step.url);
+                    }
                     if (screenshotTestResultsInfo.containsKey("screenshot_test_id") && screenshotTestResultsInfo.get("screenshot_test_id") != null) {
                         log.fine("screenshot test started: "+ screenshotTestResultsInfo.get("screenshot_test_id"));
                         screenshotsTestStarted = true;
@@ -128,11 +139,13 @@ public class CBTScreenshotsStep extends AbstractStepImpl {
                 }
                 if (screenshotTestResultsInfo.containsKey("error")) {
                     listener.getLogger().println("[ERROR] 500 error returned for Screenshot Test");
+                    CBTScreenshotsStepExecution.this.getContext().onFailure(new Exception("[ERROR] 500 error returned for Screenshot Test"));
                 } else {
                     screenshotTestResultsInfo.put("browser_list", step.browserList);
                     screenshotTestResultsInfo.put("url", step.url);
                     ScreenshotsBuildAction ssBuildAction = new ScreenshotsBuildAction(useTestResult, step.browserList, step.url);
                     ssBuildAction.setTestinfo(screenshotTestResultsInfo);
+                    ssBuildAction.setLoginProfile(step.loginProfile);
                     run.addAction(ssBuildAction);
                     if (!screenshotTestResultsInfo.isEmpty()) {
                         listener.getLogger().println("\n-----------------------");
@@ -218,13 +231,37 @@ public class CBTScreenshotsStep extends AbstractStepImpl {
                 username = local_credentials.getUsername();
                 authkey = local_credentials.getAuthkey();
             }
-            screenshotApi = new Screenshots(username, authkey);
-            checkProxySettingsAndReloadRequest(screenshotApi);
+            if (screenshotApi == null) {
+                screenshotApi = new Screenshots(username, authkey);
+                checkProxySettingsAndReloadRequest(screenshotApi);
+            }
             ListBoxModel items = new ListBoxModel();
+            items.add("**SELECT A BROWSERLIST**", "");
             try {
                 for (int i=0 ; i<screenshotApi.browserLists.size() ; i++) {
                     String browserList = screenshotApi.browserLists.get(i);
                     items.add(browserList);
+                }
+            } catch(NullPointerException npe) {}
+            return items;
+        }
+        public ListBoxModel doFillLoginProfileItems(@QueryParameter("credentialsId") final String credentialsId) {
+            CBTCredentials local_credentials = CBTCredentials.getCredentialsById(null, credentialsId);
+            if (local_credentials != null) {
+                credentials = local_credentials;
+                username = local_credentials.getUsername();
+                authkey = local_credentials.getAuthkey();
+            }
+            if (screenshotApi == null) {
+                screenshotApi = new Screenshots(username, authkey);
+                checkProxySettingsAndReloadRequest(screenshotApi);
+            }
+            ListBoxModel items = new ListBoxModel();
+            items.add("**SELECT A LOGIN PROFILE / SELENIUM SCRIPT**", "");
+            try {
+                for (int i=0 ; i<screenshotApi.loginProfiles.size() ; i++) {
+                    String loginProfile = screenshotApi.loginProfiles.get(i);
+                    items.add(loginProfile);
                 }
             } catch(NullPointerException npe) {}
             return items;
