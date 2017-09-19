@@ -2,12 +2,9 @@ package org.jenkinsci.plugins.cbt_jenkins;
 
 import java.io.IOException;
 import java.util.logging.Logger;
-
 import javax.servlet.ServletException;
-
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.QueryParameter;
-
 import com.cloudbees.plugins.credentials.common.StandardUsernameListBoxModel;
 import com.crossbrowsertesting.api.Account;
 import com.crossbrowsertesting.api.ApiFactory;
@@ -25,7 +22,7 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 
-@Extension // This indicates to Jenkins that this is an implementation of an extension point.
+@Extension
 public final class CBTDescriptor extends BuildWrapperDescriptor {
     private String 	globalUsername,
     				globalAuthkey,
@@ -69,21 +66,6 @@ public final class CBTDescriptor extends BuildWrapperDescriptor {
          */
         return Constants.DISPLAYNAME;
     }
-/*
-    @Override
-    public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
-    	
-         // To persist configuration information,
-         // set that to properties and call save().
-         // Can also use req.bindJSON(this, formData);
-         // easier when there are many fields; need set* methods for this
-        
-    	globalUsername = formData.getString("username");
-    	globalAuthkey = formData.getString("authkey");
-        save();
-        return super.configure(req,formData);            
-    }
-*/
 	@Override
 	public boolean isApplicable(AbstractProject<?, ?> item) {
 		return true;

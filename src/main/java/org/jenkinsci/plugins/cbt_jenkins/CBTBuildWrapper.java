@@ -3,21 +3,17 @@ package org.jenkinsci.plugins.cbt_jenkins;
 import com.crossbrowsertesting.api.Account;
 import com.crossbrowsertesting.api.LocalTunnel;
 import com.crossbrowsertesting.plugin.Constants;
-import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.tasks.BuildWrapper;
 import net.sf.json.JSONObject;
-import org.apache.commons.io.FileUtils;
 import org.json.JSONArray;
 import org.kohsuke.stapler.DataBoundConstructor;
-
-import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URISyntaxException;
-import java.net.URL;
+import java.sql.Time;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
@@ -147,6 +143,105 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 		getDescriptor().setBuildCredentials(username, authkey);
 	}
 
+	private void startLocalTunnel(final BuildListener listener) throws InterruptedException {
+		// tunnel stuff
+		if (!tunnelName.isEmpty() && useLocalTunnel) {
+			listener.getLogger().println(Constants.TUNNEL_USING_TUNNELNAME(tunnelName));
+			tunnel = new LocalTunnel(username, authkey, tunnelName);
+		}else if(tunnelName.isEmpty() && useLocalTunnel){
+			listener.getLogger().println(Constants.TUNNEL_USING_DEFAULT);
+			tunnel = new LocalTunnel(username, authkey);
+		}
+		if (useLocalTunnel) {
+			tunnel.queryTunnel();
+			getDescriptor().checkProxySettingsAndReloadRequest(tunnel);
+			if (!tunnel.isTunnelRunning) {
+				listener.getLogger().println(Constants.TUNNEL_NEED_TO_START);
+				try {
+					if (localTunnelPath != null && localTunnelPath.equals("")) {
+						log.fine("using embedded local tunnel");
+						tunnel.start(true);
+					} else {
+						log.fine("using specified local tunnel");
+						tunnel.start(localTunnelPath);
+					}
+					listener.getLogger().println(Constants.TUNNEL_WAITING);
+					for (int i=1 ; i<15 && !tunnel.isTunnelRunning ; i++) {
+						//will check every 2 seconds for upto 30 to see if the tunnel connected
+						TimeUnit.SECONDS.sleep(4);
+						tunnel.queryTunnel();
+					}
+					if (tunnel.isTunnelRunning) {
+						listener.getLogger().println(Constants.TUNNEL_CONNECTED);
+					}else {
+						throw new Error(Constants.TUNNEL_START_FAIL);
+					}
+				}catch (URISyntaxException | IOException e) {
+					log.finer("err: "+e);
+					throw new Error(Constants.TUNNEL_START_FAIL);
+				}
+			}else {
+				listener.getLogger().println(Constants.TUNNEL_NO_NEED_TO_START);
+			}
+		}
+	}
+	private void startScreenshotsTest(final AbstractBuild build, final BuildListener listener) throws InterruptedException {
+		// screenshots stuff
+		if (screenshotsTests != null && !screenshotsTests.isEmpty()) {
+			Iterator<JSONObject> screenshotsIterator = screenshotsTests.iterator();
+			while(screenshotsIterator.hasNext()) {
+				JSONObject ssTest = screenshotsIterator.next();
+				String screenshotsBrowserList = ssTest.getString("browserList");
+				if (screenshotsBrowserList.equals("**SELECT A BROWSERLIST*") || screenshotsBrowserList.isEmpty()) {
+					screenshotsBrowserList = "";
+				}
+				String screenshotsLoginProfile = ssTest.getString("loginProfile");
+				boolean useLoginProfile = true;
+				if (screenshotsLoginProfile.equals("**SELECT A LOGIN PROFILE / SELENIUM SCRIPT**") || screenshotsLoginProfile.isEmpty()) {
+					useLoginProfile = false;
+					screenshotsLoginProfile = "";
+				}
+
+				String screenshotsUrl = ssTest.getString("url");
+				HashMap<String, String> screenshotTestResultsInfo = new HashMap<String, String>();
+				boolean screenshotsTestStarted = false;
+				for (int i=1; i<=12 && !screenshotsTestStarted;i++) { // in windows it takes 4 -5 attempts before the screenshots test begins
+					if (useLoginProfile) {
+						screenshotTestResultsInfo = getDescriptor().screenshotApi.runScreenshotTest(screenshotsBrowserList, screenshotsUrl, screenshotsLoginProfile);
+					}else {
+						screenshotTestResultsInfo = getDescriptor().screenshotApi.runScreenshotTest(screenshotsBrowserList, screenshotsUrl);
+					}
+					if (screenshotTestResultsInfo.containsKey("screenshot_test_id") && screenshotTestResultsInfo.get("screenshot_test_id") != null) {
+						log.info("screenshot test started: "+ screenshotTestResultsInfo.get("screenshot_test_id"));
+						screenshotsTestStarted = true;
+					} else {
+						log.info("screenshot test did not start... going to try again: "+ i);
+						TimeUnit.SECONDS.sleep(10);
+					}
+				}
+				if (screenshotTestResultsInfo.containsKey("error")) {
+					listener.getLogger().println("[ERROR] 500 error returned for Screenshot Test");
+				} else {
+					screenshotTestResultsInfo.put("browser_list", screenshotsBrowserList);
+					screenshotTestResultsInfo.put("url", screenshotsUrl);
+					ScreenshotsBuildAction ssBuildAction = new ScreenshotsBuildAction(useTestResults, screenshotsBrowserList, screenshotsUrl);
+					ssBuildAction.setBuild(build);
+					ssBuildAction.setTestinfo(screenshotTestResultsInfo);
+					ssBuildAction.setLoginProfile(screenshotsLoginProfile);
+					build.addAction(ssBuildAction);
+					if (!screenshotTestResultsInfo.isEmpty()) {
+						listener.getLogger().println("\n-----------------------");
+						listener.getLogger().println("SCREENSHOT TEST RESULTS");
+						listener.getLogger().println("-----------------------");
+					}
+					for (Map.Entry<String, String> screenshotResultsEntry : screenshotTestResultsInfo.entrySet()) {
+						listener.getLogger().println(screenshotResultsEntry.getKey() + ": "+ screenshotResultsEntry.getValue());
+					}
+				}
+			}
+		}
+	}
+
     @SuppressWarnings("rawtypes")
 	@Override
     public Environment setUp(final AbstractBuild build, Launcher launcher, final BuildListener listener) throws IOException, InterruptedException {
@@ -168,101 +263,10 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
         }
         
         getDescriptor().seleniumApi.setRequest(username, authkey); // add credentials to requests
-        // tunnel stuff
-        if (!tunnelName.isEmpty() && useLocalTunnel) {
-        	listener.getLogger().println(Constants.TUNNEL_USING_TUNNELNAME(tunnelName));
-        	tunnel = new LocalTunnel(username, authkey, tunnelName);
-        }else if(tunnelName.isEmpty() && useLocalTunnel){
-        	listener.getLogger().println(Constants.TUNNEL_USING_DEFAULT);
-        	tunnel = new LocalTunnel(username, authkey);
-        }
-    	if (useLocalTunnel) {
-        	tunnel.queryTunnel();
-        	getDescriptor().checkProxySettingsAndReloadRequest(tunnel);
-    		if (!tunnel.isTunnelRunning) {
-    			listener.getLogger().println(Constants.TUNNEL_NEED_TO_START);
-				try {
-					if (localTunnelPath != null && localTunnelPath.equals("")) {
-						log.fine("using embedded local tunnel");
-						tunnel.start(true);
-					} else {
-						log.fine("using specified local tunnel");
-						tunnel.start(localTunnelPath);
-					}
-    				listener.getLogger().println(Constants.TUNNEL_WAITING);
-    				for (int i=1 ; i<15 && !tunnel.isTunnelRunning ; i++) {
-    					//will check every 2 seconds for upto 30 to see if the tunnel connected
-    					Thread.sleep(4000);
-    					tunnel.queryTunnel();
-    				}
-    				if (tunnel.isTunnelRunning) {
-    					listener.getLogger().println(Constants.TUNNEL_CONNECTED);
-    				}else {
-						throw new Error(Constants.TUNNEL_START_FAIL);
-					}
-    			}catch (URISyntaxException | IOException e) {
-					log.finer("err: "+e);
-					throw new Error(Constants.TUNNEL_START_FAIL);
-				}
-    		}else {
-    			listener.getLogger().println(Constants.TUNNEL_NO_NEED_TO_START);
-    		}
-    	}
-    	
-    	// screenshots stuff
-    	if (screenshotsTests != null && !screenshotsTests.isEmpty()) {
-    		Iterator<JSONObject> screenshotsIterator = screenshotsTests.iterator();
-    		while(screenshotsIterator.hasNext()) {
-	    		JSONObject ssTest = screenshotsIterator.next();
-    			String screenshotsBrowserList = ssTest.getString("browserList");
-    			if (screenshotsBrowserList.equals("**SELECT A BROWSERLIST*") || screenshotsBrowserList.isEmpty()) {
-    				screenshotsBrowserList = "";
-				}
-				String screenshotsLoginProfile = ssTest.getString("loginProfile");
-    			boolean useLoginProfile = true;
-				if (screenshotsLoginProfile.equals("**SELECT A LOGIN PROFILE / SELENIUM SCRIPT**") || screenshotsLoginProfile.isEmpty()) {
-					useLoginProfile = false;
-					screenshotsLoginProfile = "";
-				}
 
-				String screenshotsUrl = ssTest.getString("url");
-				HashMap<String, String> screenshotTestResultsInfo = new HashMap<String, String>();
-				boolean screenshotsTestStarted = false;
-    			for (int i=1; i<=12 && !screenshotsTestStarted;i++) { // in windows it takes 4 -5 attempts before the screenshots test begins
-					if (useLoginProfile) {
-						screenshotTestResultsInfo = getDescriptor().screenshotApi.runScreenshotTest(screenshotsBrowserList, screenshotsUrl, screenshotsLoginProfile);
-					}else {
-						screenshotTestResultsInfo = getDescriptor().screenshotApi.runScreenshotTest(screenshotsBrowserList, screenshotsUrl);
-					}
-					if (screenshotTestResultsInfo.containsKey("screenshot_test_id") && screenshotTestResultsInfo.get("screenshot_test_id") != null) {
-						log.info("screenshot test started: "+ screenshotTestResultsInfo.get("screenshot_test_id"));
-						screenshotsTestStarted = true;
-					} else {
-						log.info("screenshot test did not start... going to try again: "+ i);
-						TimeUnit.SECONDS.sleep(10);
-					}
-				}
-		    	if (screenshotTestResultsInfo.containsKey("error")) {
-		    		listener.getLogger().println("[ERROR] 500 error returned for Screenshot Test");
-		    	} else {
-					screenshotTestResultsInfo.put("browser_list", screenshotsBrowserList);
-					screenshotTestResultsInfo.put("url", screenshotsUrl);
-					ScreenshotsBuildAction ssBuildAction = new ScreenshotsBuildAction(useTestResults, screenshotsBrowserList, screenshotsUrl);
-					ssBuildAction.setBuild(build);
-					ssBuildAction.setTestinfo(screenshotTestResultsInfo);
-					ssBuildAction.setLoginProfile(screenshotsLoginProfile);
-		    		build.addAction(ssBuildAction);
-		    		if (!screenshotTestResultsInfo.isEmpty()) {
-		    			listener.getLogger().println("\n-----------------------");
-		    			listener.getLogger().println("SCREENSHOT TEST RESULTS");
-		    			listener.getLogger().println("-----------------------");
-		    		}
-				    for (Map.Entry<String, String> screenshotResultsEntry : screenshotTestResultsInfo.entrySet()) {
-				    	listener.getLogger().println(screenshotResultsEntry.getKey() + ": "+ screenshotResultsEntry.getValue());
-				    }
-		    	}
-    		}
-    	}
+		startLocalTunnel(listener);
+		startScreenshotsTest(build, listener);
+
     	return new CBTEnvironment(build);
     }
 

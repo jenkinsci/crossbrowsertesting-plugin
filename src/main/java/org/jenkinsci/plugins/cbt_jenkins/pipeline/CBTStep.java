@@ -1,36 +1,31 @@
 package org.jenkinsci.plugins.cbt_jenkins.pipeline;
 
-import com.crossbrowsertesting.api.ApiFactory;
 import com.crossbrowsertesting.api.LocalTunnel;
 import com.crossbrowsertesting.plugin.Constants;
-import com.google.inject.Inject;
+import com.google.common.collect.ImmutableSet;
 import hudson.Extension;
 import hudson.model.*;
-import hudson.util.FormValidation;
-import hudson.util.ListBoxModel;
-import jenkins.model.Jenkins;
-import org.jenkinsci.plugins.cbt_jenkins.CBTBuildWrapper;
-import org.jenkinsci.plugins.cbt_jenkins.CBTCredentials;
 import org.jenkinsci.plugins.workflow.steps.*;
-import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-
-import javax.annotation.Nonnull;
-import javax.servlet.ServletException;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 
-public class CBTStep extends AbstractStepImpl {
+public class CBTStep extends AbstractCBTStep {
     private transient final static Logger log = Logger.getLogger(CBTStep.class.getName());
 
     public boolean useLocalTunnel,
             useTestResults= false;
-    public String credentialsId,
-            localTunnelPath,
+    public String localTunnelPath,
             tunnelName = "";
+
+    @Override
+    public StepExecution start(StepContext context) throws Exception {
+        return new CBTStepExecution(this, context);
+    }
 
     @DataBoundConstructor
     public CBTStep(boolean useLocalTunnel, boolean useTestResults, String credentialsId, String tunnelName, String localTunnelPath) {
@@ -77,36 +72,33 @@ public class CBTStep extends AbstractStepImpl {
         }
     }
 
-    public static class CBTStepExecution extends AbstractStepExecutionImpl {
+    public static class CBTStepExecution extends AbstractCBTStepExecution {
         private transient final static Logger log = Logger.getLogger(CBTStepExecution.class.getName());
-        @StepContextParameter private transient Run<?,?> run;
-        @Inject(optional=true) private transient CBTStep step;
-        @StepContextParameter private transient TaskListener listener;
-        private BodyExecution body;
-
+        private transient CBTStep cbtStep;
         private transient LocalTunnel tunnel = null;
-        private String username, authkey = "";
+
+        public CBTStepExecution(CBTStep step, StepContext context) throws Exception {
+            super(step, context);
+            cbtStep = step;
+        }
 
         @Override
         public boolean start() throws Exception {
-            Job<?,?> job = run.getParent();
             if (!(job instanceof TopLevelItem)) {
                 throw new Exception(job + " must be a top-level job");
             }
-            CBTCredentials credentials = CBTCredentials.getCredentialsById(job, step.credentialsId);
-
-            if (credentials == null) {
+            if (cbtStep.getCredentials() == null) {
                 throw new Exception("no credentials provided");
             }else {
-                username = credentials.getUsername();
+                username = cbtStep.getCredentials().getUsername();
                 log.finest("username = "+username);
-                authkey = credentials.getAuthkey();
+                authkey = cbtStep.getCredentials().getAuthkey();
                 log.finest("authkey = "+authkey);
-                if (step.useLocalTunnel) {
-                    if (!step.tunnelName.isEmpty()) {
-                        listener.getLogger().println(Constants.TUNNEL_USING_TUNNELNAME(step.tunnelName));
-                        tunnel = new LocalTunnel(username, authkey, step.tunnelName);
-                    }else if(step.tunnelName.isEmpty()){
+                if (cbtStep.useLocalTunnel) {
+                    if (!cbtStep.tunnelName.isEmpty()) {
+                        listener.getLogger().println(Constants.TUNNEL_USING_TUNNELNAME(cbtStep.tunnelName));
+                        tunnel = new LocalTunnel(username, authkey, cbtStep.tunnelName);
+                    }else if(cbtStep.tunnelName.isEmpty()){
                         listener.getLogger().println(Constants.TUNNEL_USING_DEFAULT);
                         tunnel = new LocalTunnel(username, authkey);
                     }
@@ -115,17 +107,17 @@ public class CBTStep extends AbstractStepImpl {
                     if (!tunnel.isTunnelRunning) {
                         listener.getLogger().println(Constants.TUNNEL_NEED_TO_START);
                         try {
-                            if (step.localTunnelPath != null && step.localTunnelPath.equals("")) {
+                            if (cbtStep.localTunnelPath != null && cbtStep.localTunnelPath.equals("")) {
                                 log.fine("using embedded local tunnel");
                                 tunnel.start(true);
                             } else {
                                 log.fine("using specified local tunnel");
-                                tunnel.start(step.localTunnelPath);
+                                tunnel.start(cbtStep.localTunnelPath);
                             }
                             listener.getLogger().println(Constants.TUNNEL_WAITING);
                             for (int i=1 ; i<15 && !tunnel.isTunnelRunning ; i++) {
                                 //will check every 2 seconds for upto 30 to see if the tunnel connected
-                                Thread.sleep(4000);
+                                TimeUnit.SECONDS.sleep(4);
                                 tunnel.queryTunnel();
                             }
                             if (tunnel.isTunnelRunning) {
@@ -143,16 +135,10 @@ public class CBTStep extends AbstractStepImpl {
                 }
             }
             body = getContext().newBodyInvoker()
-                    .withContexts(credentials, step.useTestResults)
+                    .withContexts(cbtStep.getCredentials(), cbtStep.useTestResults)
                     .withCallback(new CBTStepTailCall())
                     .start();
             return false;
-        }
-        @Override
-        public void stop(@Nonnull Throwable cause) throws Exception {
-            if (body!=null) {
-                body.cancel(cause);
-            }
         }
         public class CBTStepTailCall extends BodyExecutionCallback.TailCall {
             private transient final Logger log = Logger.getLogger(CBTStepTailCall.class.getName());
@@ -187,51 +173,21 @@ public class CBTStep extends AbstractStepImpl {
         }
     }
     @Extension
-    public static final class CBTStepDescriptor extends AbstractStepDescriptorImpl {
+    public static final class CBTStepDescriptor extends AbstractCBTStepDescriptor {
         private transient final static Logger log = Logger.getLogger(CBTStepDescriptor.class.getName());
 
-        public CBTStepDescriptor() {
-            super(CBTStepExecution.class);
-        }
-
-        @Override
+        //@Override
         public String getFunctionName() {
-            return "cbt";
+            return functionNamePrefix();
         }
         @Override
         public String getDisplayName() {
             return "CrossBrowserTesting.com";
         }
+
         @Override
-        public boolean takesImplicitBlockArgument() {
-            return true;
-        }
-        public static void checkProxySettingsAndReloadRequest(ApiFactory af) {
-            // gets the proxy settings and reloads the Api Requests with them
-            Jenkins jenkins = Jenkins.getInstance();
-            try {
-                String hostname = jenkins.proxy.name;
-                int port = jenkins.proxy.port; // why is this throwing a null pointer if not set???
-                try { // we'll do these too, just in case it throws a NPE too
-                    String proxyUsername = jenkins.proxy.getUserName();
-                    String proxyPassword = jenkins.proxy.getPassword();
-                    if (proxyUsername != null && proxyPassword != null && !proxyUsername.isEmpty() && !proxyPassword.isEmpty()) {
-                        af.getRequest().setProxyCredentials(proxyUsername, proxyPassword);
-                    }
-                } catch(NullPointerException npe) {
-                    //System.out.println("no proxy credentials were set");
-                } // no proxy credentials were set
-                af.getRequest().setProxy(hostname, port);
-                af.init();
-            } catch(NullPointerException npe) {
-                //System.out.println("dont need to use a proxy");
-            } // dont need to use a proxy
-        }
-        public ListBoxModel doFillCredentialsIdItems(final @AncestorInPath ItemGroup<?> context) {
-            return CBTCredentials.fillCredentialsIdItems(context);
-        }
-        public FormValidation doTestConnection(@QueryParameter("username") final String username, @QueryParameter("authkey") final String authkey) throws IOException, ServletException {
-            return CBTCredentials.testCredentials(username, authkey);
+        public Set<? extends Class<?>> getRequiredContext() {
+            return ImmutableSet.of(Run.class, TaskListener.class);
         }
     }
 }
