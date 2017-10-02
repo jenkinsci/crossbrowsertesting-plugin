@@ -1,6 +1,7 @@
 plugins {
     id 'org.jenkins-ci.jpi' version '0.22.0'
     id 'net.researchgate.release' version '2.6.0'
+    id "se.bjurr.gitchangelog.git-changelog-gradle-plugin" version "1.50"
     id 'java'
     id 'idea'
 }
@@ -86,4 +87,23 @@ if (project.hasProperty('jenkins')) {
 }
 task wrapper(type: Wrapper) {
     gradleVersion = '4.0.2'
+}
+task changelog(type: se.bjurr.gitchangelog.plugin.gradle.GitChangelogTask) {
+    file = new File("CHANGELOG.md");
+    templateContent = """
+
+{{#tags}}
+## {{name}}
+{{#issues}}
+### {{title}}
+{{#commits}}
+  {{#hash}}
+  {{#message}}
+   * [{{hash}}](https://github.com/jenkinsci/crossbrowsertesting-plugin/commit/{{hash}}) {{{message}}}
+  {{/message}}
+  {{/hash}}
+{{/commits}}
+{{/issues}}
+{{/tags}}
+ """;
 }
