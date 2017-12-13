@@ -231,13 +231,16 @@ public class CBTScreenshotsStep extends AbstractStepImpl {
                 username = local_credentials.getUsername();
                 authkey = local_credentials.getAuthkey();
             }
-            if (screenshotApi == null) {
-                screenshotApi = new Screenshots(username, authkey);
-                checkProxySettingsAndReloadRequest(screenshotApi);
-            }
+
+            System.out.println("In fill browserListItems with credentials " + username + " " + authkey);
             ListBoxModel items = new ListBoxModel();
-            items.add("**SELECT A BROWSERLIST**", "");
             try {
+                if (screenshotApi == null) {
+                    screenshotApi = new Screenshots(username, authkey);
+                    checkProxySettingsAndReloadRequest(screenshotApi);
+                }
+                items.add("**SELECT A BROWSERLIST**", "");
+
                 for (int i=0 ; i<screenshotApi.browserLists.size() ; i++) {
                     String browserList = screenshotApi.browserLists.get(i);
                     items.add(browserList);
@@ -252,13 +255,17 @@ public class CBTScreenshotsStep extends AbstractStepImpl {
                 username = local_credentials.getUsername();
                 authkey = local_credentials.getAuthkey();
             }
-            if (screenshotApi == null) {
-                screenshotApi = new Screenshots(username, authkey);
-                checkProxySettingsAndReloadRequest(screenshotApi);
-            }
+            System.out.println("In fill fillLoginProfileItems with credentials " + username + " " + authkey);
+
             ListBoxModel items = new ListBoxModel();
-            items.add("**SELECT A LOGIN PROFILE / SELENIUM SCRIPT**", "");
             try {
+                if (screenshotApi == null) {
+                    screenshotApi = new Screenshots(username, authkey);
+                    checkProxySettingsAndReloadRequest(screenshotApi);
+                }
+
+                items.add("**SELECT A LOGIN PROFILE / SELENIUM SCRIPT**", "");
+
                 for (int i=0 ; i<screenshotApi.loginProfiles.size() ; i++) {
                     String loginProfile = screenshotApi.loginProfiles.get(i);
                     items.add(loginProfile);

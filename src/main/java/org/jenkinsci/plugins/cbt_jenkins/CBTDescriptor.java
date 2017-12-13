@@ -40,20 +40,23 @@ public final class CBTDescriptor extends BuildWrapperDescriptor {
 		 * instantiated when the plugin is installed
 		 */
 		super(CBTBuildWrapper.class);
-		//System.out.println("in descriptor");
-        load();
+		try {
+            load();
+        } catch (Exception ex) {
+		    log.finest("Unable to load XML file");
+        }
     }
 	
 	public String getUsername() {
     	if (buildUsername != null && buildAuthkey != null && !buildUsername.isEmpty() && !buildAuthkey.isEmpty()) {
     		return buildUsername;
     	} else {
-    		return globalUsername;
-    	}
+			return globalUsername;
+		}
 	}
 	public String getAuthkey() {
     	if (buildUsername != null && buildAuthkey != null && !buildUsername.isEmpty() && !buildAuthkey.isEmpty()) {
-			return buildAuthkey;
+    		return buildAuthkey;
 		} else {
 			return globalAuthkey;
 		}
@@ -152,7 +155,7 @@ public final class CBTDescriptor extends BuildWrapperDescriptor {
     public ListBoxModel doFillBrowserItems(@QueryParameter String operating_system) {
         ListBoxModel items = new ListBoxModel();
         if (operating_system.isEmpty()) {
-        	items.add("**SELECT AN OPERATING SYSTEM**", "");
+        	items.add("**SELECT A BROWSER**", "");
 		}
         try {
 	        OperatingSystem config = seleniumApi.operatingSystems2.get(operating_system);
@@ -166,12 +169,14 @@ public final class CBTDescriptor extends BuildWrapperDescriptor {
     }
     public ListBoxModel doFillResolutionItems(@QueryParameter String operating_system) {
         ListBoxModel items = new ListBoxModel();
-		if (operating_system.isEmpty()) {
-			items.add("**SELECT AN OPERATING SYSTEM**", "");
-		}
         try {
+            if (operating_system.isEmpty()) {
+                items.add("**SELECT A RESOLUTION**", "");
+            }
+
 	        OperatingSystem config = seleniumApi.operatingSystems2.get(operating_system);
-	        for (int i=0 ; i<config.resolutions.size() ; i++) {
+
+            for (int i=0 ; i<config.resolutions.size() ; i++) {
 	        	Resolution configResolution = config.resolutions.get(i);
 	            items.add(configResolution.getName());
 	    	}
@@ -179,37 +184,44 @@ public final class CBTDescriptor extends BuildWrapperDescriptor {
         return items;
     }
     public ListBoxModel doFillBrowserListItems() {
-		if (screenshotApi == null) {
-			screenshotApi = new Screenshots(getUsername(), getAuthkey());
-			checkProxySettingsAndReloadRequest(screenshotApi);
-		}
 		ListBoxModel items = new ListBoxModel();
-		items.add("**SELECT A BROWSERLIST**", "");
-		try {
+
+        try {
+			if (screenshotApi == null && getUsername() != null) {
+				screenshotApi = new Screenshots(getUsername(), getAuthkey());
+				checkProxySettingsAndReloadRequest(screenshotApi);
+				items.add("**SELECT A BROWSERLIST**", "");
+			}
 	        for (int i=0 ; i<screenshotApi.browserLists.size() ; i++) {
 	        	String browserList = screenshotApi.browserLists.get(i);
 	            items.add(browserList);
 	        }
-    	} catch(NullPointerException npe) {}
+    	} catch(NullPointerException npe) {
+
+            items.add("*** Please add Username/Authkey ***");
+        }
         return items;
     }
 	public ListBoxModel doFillLoginProfileItems() {
-		if (screenshotApi == null) {
-			screenshotApi = new Screenshots(getUsername(), getAuthkey());
-			checkProxySettingsAndReloadRequest(screenshotApi);
-		}
 		ListBoxModel items = new ListBoxModel();
-		items.add("**SELECT A LOGIN PROFILE / SELENIUM SCRIPT**", "");
 		try {
+            if (screenshotApi == null && getUsername() != null) {
+                screenshotApi = new Screenshots(getUsername(), getAuthkey());
+                checkProxySettingsAndReloadRequest(screenshotApi);
+				items.add("**SELECT A LOGIN PROFILE / SELENIUM SCRIPT**", "");
+            }
 			for (int i=0 ; i<screenshotApi.loginProfiles.size() ; i++) {
 				String loginProfile = screenshotApi.loginProfiles.get(i);
 				items.add(loginProfile);
 			}
-		} catch(NullPointerException npe) {}
+		} catch(NullPointerException npe) {
+            items.add("**Please add Username/Authkey**", "");
+
+        }
 		return items;
 	}
     public ListBoxModel doFillCredentialsIdItems(final @AncestorInPath ItemGroup<?> context) {
-    	return new StandardUsernameListBoxModel().withAll(CBTCredentials.all(context));
+		return new StandardUsernameListBoxModel().withAll(CBTCredentials.all(context));
     }
     public FormValidation doTestConnection(@QueryParameter("username") final String username, @QueryParameter("authkey") final String authkey) throws IOException, ServletException {
     	Account account = new Account(username, authkey);
