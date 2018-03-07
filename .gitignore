@@ -1,6 +1,6 @@
 ## Jenkins Directories
-target
-work
+target/
+work/
 
 ## Java
 *.class

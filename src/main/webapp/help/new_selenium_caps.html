@@ -1,0 +1,15 @@
+<p>Adds support for the new <a href="https://help.crossbrowsertesting.com/selenium-testing/getting-started/crossbrowsertesting-automation-capabilities/">CrossBrowserTesting.com Selenium Capabilites</a>.</p>
+<p>New environment variables have been added to correspond with the capabilities</p>
+<table>
+    <tr><th>Variable</th><th>Description</th></tr>
+    <tr><td>CBT_ISMOBILE</td><td>"true" if the browser is mobile, otherwise "false"</td></tr>
+    <tr><td>CBT_DEVICENAME</td><td>The name of the device. Should match the browserName such that Chrome is for Androids, and Safari is for iPads and iPhones.</td></tr>
+    <tr><td>CBT_PLATFORMNAME</td><td>This field is a convention for matching appium-style capabilities but is not required by our system. It is a good idea to include with scripts that may be run against different remote servers.</td></tr>
+    <tr><td>CBT_PLATFORMVERSION</td><td>The version of the mobile OS.</td></tr>
+    <tr><td>CBT_DEVICEORIENTATION</td><td>landscape, portrait</td></tr>
+    <tr><td>CBT_BROWSERNAME</td><td>The name of the browser for your test.</td></tr>
+    <tr><td>CBT_VERSION</td><td>The browser version for the browser name specified</td></tr>
+    <tr><td>CBT_PLATFORM</td><td>Platform selected for testing. If no platform is selected</td></tr>
+    <tr><td>CBT_SCREENRESOLUTION</td><td>The preferred resolution of the OS for the test.</td></tr>
+    <tr><td>CBT_BROWSERS</td><td>an array of JSON objects ie. [{"platformVersion":"11.0","browserName":"Safari","deviceOrientation":"portrait","isMobile":true,"platformName":"iOS","deviceName":"iPhone 8 Simulator"},{"browserName":"Safari","isMobile":false,"screenResolution":"1024x768","version":"11","platform":"Mac OSX 10.13"}]</td></tr>
+</table>
