@@ -81,6 +81,10 @@
 		</f:block>
 		<f:block>
 			<f:advanced>
+				<f:entry title="Pass all traffic through the local tunnel" field="localTunnelNoBypass"
+						 description="Specify whether public-resolvable URLs should pass through the tunnel (checked) or bypass the tunnel and resolve directly (unchecked)">
+					<f:checkbox value="${instance.localTunnelNoBypass()}"/>
+				</f:entry>
 				<f:entry title="Local Tunnel Binary Path" field="localTunnelPath"
 						 description="Full path to a preinstalled cbt_tunnel binary. If left blank, the plugin will use an embedded cbt_tunnel.">
 					<f:textbox value="${instance.localTunnelPath()}" />

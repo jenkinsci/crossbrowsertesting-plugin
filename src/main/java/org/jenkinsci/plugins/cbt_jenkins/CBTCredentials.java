@@ -50,15 +50,23 @@ public class CBTCredentials extends BaseStandardCredentials implements StandardU
 	}
 	
 	@Override
-	public String getUsername() {
-		return this.username;
+        public String getUsername() {
+            if (this.username == null) {
+                return "";
+            } else {
+                return this.username;
+            }
 	}
 	@Override
 	public Secret getPassword() {
 		return this.authkey;
 	}
 	public String getAuthkey() {
-		return Secret.toString(this.authkey);
+	    if (this.authkey == null) {
+	        return "";
+        } else {
+            return Secret.toString(this.authkey);
+        }
 	}
     public static List<CBTCredentials> all(ItemGroup context) {
         return CredentialsProvider.lookupCredentials(CBTCredentials.class, context, ACL.SYSTEM, CBTCredentials.DOMAIN_REQUIREMENT);

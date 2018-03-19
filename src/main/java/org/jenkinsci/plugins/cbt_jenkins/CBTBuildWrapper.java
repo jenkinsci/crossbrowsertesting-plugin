@@ -26,6 +26,8 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 
 	private LocalTunnel tunnel;
 	private boolean useLocalTunnel;
+	private boolean localTunnelNoBypass;
+
 	private boolean useTestResults;
 	private boolean useNewSeleniumCaps;
 
@@ -40,7 +42,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     private final static Logger log = Logger.getLogger(CBTBuildWrapper.class.getName());
 
     @DataBoundConstructor
-    public CBTBuildWrapper(List<JSONObject> screenshotsTests, List<JSONObject> seleniumTests, boolean useLocalTunnel, boolean useTestResults, boolean useNewSeleniumCaps, String credentialsId, String tunnelName, String localTunnelPath) {
+    public CBTBuildWrapper(List<JSONObject> screenshotsTests, List<JSONObject> seleniumTests, boolean useLocalTunnel, boolean localTunnelNoBypass, boolean useTestResults, boolean useNewSeleniumCaps, String credentialsId, String tunnelName, String localTunnelPath) {
     	/*
     	 * Instantiated when the configuration is saved
     	 * Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
@@ -54,6 +56,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     	// reset the username and authkey for screenshots
 		setCredentials(credentialsId);
     	//advanced options
+		setLocalTunnelNoBypass(localTunnelNoBypass);
 		setTunnelName(tunnelName);
     	setLocalTunnelPath(localTunnelPath);
     	setUseNewSeleniumCaps(useNewSeleniumCaps);
@@ -69,6 +72,9 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     public boolean getUseLocalTunnel() {
     	return this.useLocalTunnel;
     }
+    public boolean getLocalTunnelNoBypass() {
+    	return this.localTunnelNoBypass;
+	}
     public boolean getUseTestResults() {
     	return this.useTestResults;
     }
@@ -130,6 +136,18 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 			this.useLocalTunnel = false;
 		}
 	}
+	private void setLocalTunnelNoBypass(boolean localTunnelNoBypass) {
+    	// default to bypass True
+		try { // prevent null pointer
+			if (localTunnelNoBypass != true) {
+				this.localTunnelNoBypass = false;
+			} else {
+				this.localTunnelNoBypass = localTunnelNoBypass;
+			}
+		} catch (NullPointerException npe) {
+			this.localTunnelNoBypass = false;
+		}
+	}
 	private void setUseTestResults(boolean useTestResults) {
 		try { // prevent null pointer
 			if (useTestResults != true) {
@@ -157,8 +175,13 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 		log.fine("about to get credentials");
 		final CBTCredentials credentials = CBTCredentials.getCredentials(null, credentialsId);
 		log.fine("got credentials");
-		this.username = credentials.getUsername();
-		this.authkey = credentials.getAuthkey();
+		if (credentials != null) {
+			this.username = credentials.getUsername();
+			this.authkey = credentials.getAuthkey();
+		} else {
+			log.fine("got null pointer from username or authkey. going to set them both to empty");
+			this.username = this.authkey = "";
+		}
 		log.fine("setting credentials");
 		getDescriptor().setBuildCredentials(username, authkey);
 	}
@@ -180,7 +203,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 				try {
 					if (localTunnelPath != null && localTunnelPath.equals("")) {
 						log.fine("using embedded local tunnel");
-						tunnel.start(true);
+						tunnel.start(true, !getLocalTunnelNoBypass()); // logic for bypassing the local tunnel is reversed
 					} else {
 						log.fine("using specified local tunnel");
 						tunnel.start(localTunnelPath);

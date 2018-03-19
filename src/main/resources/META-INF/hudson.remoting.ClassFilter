@@ -1,0 +1,7 @@
+org.jenkinsci.plugins.cbt_jenkins.SeleniumBuildAction
+org.jenkinsci.plugins.cbt_jenkins.CBTBuildWrapper
+org.jenkinsci.plugins.cbt_jenkins.CBTCredentials
+org.jenkinsci.plugins.cbt_jenkins.SeleniumBuildAction
+com.crossbrowsertesting.api.Screenshots
+net.sf.json.JSONObject
+org.apache.commons.collections.map.ListOrderedMap

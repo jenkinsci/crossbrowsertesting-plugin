@@ -1,6 +1,7 @@
 package org.jenkinsci.plugins.cbt_jenkins;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.logging.Logger;
 import javax.servlet.ServletException;
 import org.kohsuke.stapler.AncestorInPath;
@@ -30,6 +31,7 @@ public final class CBTDescriptor extends BuildWrapperDescriptor {
     				buildAuthkey = "";
 	Screenshots screenshotApi;
 	Selenium seleniumApi = new Selenium();
+
 	private final static Logger log = Logger.getLogger(CBTDescriptor.class.getName());
     
 	public CBTDescriptor() throws IOException {
@@ -43,8 +45,10 @@ public final class CBTDescriptor extends BuildWrapperDescriptor {
 	
 	public String getUsername() {
     	if (buildUsername != null && buildAuthkey != null && !buildUsername.isEmpty() && !buildAuthkey.isEmpty()) {
+    		log.fine("using build username = "+buildUsername);
     		return buildUsername;
     	} else {
+    		log.fine("using global username");
     		return globalUsername;
     	}
 	}
@@ -161,10 +165,8 @@ public final class CBTDescriptor extends BuildWrapperDescriptor {
         return items;
     }
     public ListBoxModel doFillBrowserListItems() {
-		if (screenshotApi == null) {
-			screenshotApi = new Screenshots(getUsername(), getAuthkey());
-			checkProxySettingsAndReloadRequest(screenshotApi);
-		}
+		screenshotApi = new Screenshots(getUsername(), getAuthkey());
+		checkProxySettingsAndReloadRequest(screenshotApi);
 		ListBoxModel items = new ListBoxModel();
 		items.add("**SELECT A BROWSERLIST**", "");
 		try {
@@ -176,10 +178,9 @@ public final class CBTDescriptor extends BuildWrapperDescriptor {
         return items;
     }
 	public ListBoxModel doFillLoginProfileItems() {
-		if (screenshotApi == null) {
-			screenshotApi = new Screenshots(getUsername(), getAuthkey());
-			checkProxySettingsAndReloadRequest(screenshotApi);
-		}
+		screenshotApi = new Screenshots(getUsername(), getAuthkey());
+		checkProxySettingsAndReloadRequest(screenshotApi);
+
 		ListBoxModel items = new ListBoxModel();
 		items.add("**SELECT A LOGIN PROFILE / SELENIUM SCRIPT**", "");
 		try {
