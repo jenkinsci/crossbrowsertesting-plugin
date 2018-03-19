@@ -52,8 +52,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 		setSeleniumTests(seleniumTests);
 		setUseLocalTunnel(useLocalTunnel);
 		setUseTestResults(useTestResults);
-
-    	// reset the username and authkey for screenshots
+		// reset the username and authkey for screenshots
 		setCredentials(credentialsId);
     	//advanced options
 		setLocalTunnelNoBypass(localTunnelNoBypass);
@@ -172,7 +171,6 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 	}
 	private void setCredentials(String credentialsId) {
 		this.credentialsId = credentialsId;
-		log.fine("about to get credentials");
 		final CBTCredentials credentials = CBTCredentials.getCredentials(null, credentialsId);
 		log.fine("got credentials");
 		if (credentials != null) {
@@ -183,6 +181,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 			this.username = this.authkey = "";
 		}
 		log.fine("setting credentials");
+
 		getDescriptor().setBuildCredentials(username, authkey);
 	}
 

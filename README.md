@@ -23,7 +23,10 @@ Wiki: https://wiki.jenkins-ci.org/display/JENKINS/CrossBrowserTesting+Plugin
 
 <pre>gradlew server</pre>
 ###### to specify the version of jenkins:
-<pre>gradlew server Pjenkins=${jenkins_version}</pre>
+<pre>gradlew server -Pjenkins=${jenkins_version}</pre>
+
+###### to make it run a little faster, turn on caching:
+<pre>gradlew server -Pjenkins=${jenkins_version} -Dstapler.jelly.noCache=false</pre>
 ##### To release:
 make sure all code has been committed to your local git repo
 <pre>gradlew publish release</pre>

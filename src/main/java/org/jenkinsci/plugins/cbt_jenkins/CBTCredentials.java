@@ -45,8 +45,14 @@ public class CBTCredentials extends BaseStandardCredentials implements StandardU
                           @CheckForNull String username, @CheckForNull String authkey,
                           @CheckForNull String id, @CheckForNull String description) {
             super(scope, id, description);
-		this.username = username;
+
+        /*
+            Instantiated whenever we make new credentials, whether its in the configuration or globally
+         */
+
+        this.username = username;
 		this.authkey = Secret.fromString(authkey);
+
 	}
 	
 	@Override
@@ -59,7 +65,7 @@ public class CBTCredentials extends BaseStandardCredentials implements StandardU
 	}
 	@Override
 	public Secret getPassword() {
-		return this.authkey;
+	    return this.authkey;
 	}
 	public String getAuthkey() {
 	    if (this.authkey == null) {

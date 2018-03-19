@@ -90,8 +90,13 @@ public class CBTScreenshotsStep extends AbstractCBTStep {
         public ListBoxModel doFillBrowserListItems(@QueryParameter("credentialsId") final String credentialsId) {
             checkCredentials(credentialsId);
             ListBoxModel items = new ListBoxModel();
-            items.add("**SELECT A BROWSERLIST**", "");
             try {
+                if (screenshotApi == null) {
+                    screenshotApi = new Screenshots(username, authkey);
+                    checkProxySettingsAndReloadRequest(screenshotApi);
+                }
+                items.add("**SELECT A BROWSERLIST**", "");
+
                 for (int i=0 ; i<screenshotApi.browserLists.size() ; i++) {
                     String browserList = screenshotApi.browserLists.get(i);
                     items.add(browserList);
@@ -101,9 +106,21 @@ public class CBTScreenshotsStep extends AbstractCBTStep {
         }
         public ListBoxModel doFillLoginProfileItems(@QueryParameter("credentialsId") final String credentialsId) {
             checkCredentials(credentialsId);
+            CBTCredentials local_credentials = CBTCredentials.getCredentialsById(null, credentialsId);
+            if (local_credentials != null) {
+                credentials = local_credentials;
+                username = local_credentials.getUsername();
+                authkey = local_credentials.getAuthkey();
+            }
             ListBoxModel items = new ListBoxModel();
-            items.add("**SELECT A LOGIN PROFILE / SELENIUM SCRIPT**", "");
             try {
+                if (screenshotApi == null) {
+                    screenshotApi = new Screenshots(username, authkey);
+                    checkProxySettingsAndReloadRequest(screenshotApi);
+                }
+
+                items.add("**SELECT A LOGIN PROFILE / SELENIUM SCRIPT**", "");
+
                 for (int i=0 ; i<screenshotApi.loginProfiles.size() ; i++) {
                     String loginProfile = screenshotApi.loginProfiles.get(i);
                     items.add(loginProfile);

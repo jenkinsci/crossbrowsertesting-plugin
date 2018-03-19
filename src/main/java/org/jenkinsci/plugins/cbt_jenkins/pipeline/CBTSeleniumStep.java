@@ -157,7 +157,7 @@ public class CBTSeleniumStep extends AbstractCBTStep {
         public ListBoxModel doFillBrowserItems(@QueryParameter("operatingSystem") final String operating_system) {
             ListBoxModel items = new ListBoxModel();
             if (operating_system.isEmpty()) {
-                items.add("**SELECT AN OPERATING SYSTEM**", "");
+                items.add("**SELECT A BROWSER**", "");
             }
             try {
                 OperatingSystem config = seleniumApi.operatingSystems2.get(operating_system);
@@ -171,7 +171,7 @@ public class CBTSeleniumStep extends AbstractCBTStep {
         public ListBoxModel doFillResolutionItems(@QueryParameter("operatingSystem") final String operating_system) {
             ListBoxModel items = new ListBoxModel();
             if (operating_system.isEmpty()) {
-                items.add("**SELECT AN OPERATING SYSTEM**", "");
+                items.add("**SELECT A RESOLUTION**", "");
             }
             try {
                 OperatingSystem config = seleniumApi.operatingSystems2.get(operating_system);
