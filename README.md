@@ -1,4 +1,4 @@
-#CrossBrowserTesting.com Jenkins Plugin
+# CrossBrowserTesting.com Jenkins Plugin
 #### This plugin integrates Jenkins users with Selenium Testing and Screenshot Testing on CrossBrowserTesting.com. CrossBrowserTesting.com provides cross browser testing of websites, webpages, and web applications on Windows, Macs, and real iPhones, iPads, and Android Phones and Tablets.
 Wiki: https://wiki.jenkins-ci.org/display/JENKINS/CrossBrowserTesting+Plugin
 
