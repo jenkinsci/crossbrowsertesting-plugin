@@ -8,12 +8,22 @@ from selenium import webdriver
 caps = {}
 username = os.environ.get("CBT_USERNAME")
 key = os.environ.get("CBT_APIKEY")
-caps['name'] = os.environ.get("CBT_BUILD_NAME")
-caps['build'] = os.environ.get("CBT_BUILD_NUMBER")
+
+caps['name'] = os.environ.get("CBT_BUILD_NAME")    # Need to set these to something else?
+caps['build'] = os.environ.get("CBT_BUILD_NUMBER") # Check below to learn how
 caps['browser_api_name'] = os.environ.get("CBT_BROWSER")
 caps['os_api_name'] = os.environ.get("CBT_OPERATING_SYSTEM")
 caps['screen_resolution'] = os.environ.get("CBT_RESOLUTION")
 caps['record_video'] = 'true'
+
+# Need to set the build and name capabilites to something else?
+# Just set the jenkins_name and jenkins_build caps to the proper environment variables
+# that Jenkins sets. This allows Jenkins to locate the test after it has run:
+
+# caps['name'] = "Hard-coded build name"
+# caps['build'] = "1.0.0"
+# caps['jenkins_name'] = os.environ.get("CBT_BUILD_NAME")
+# caps['jenkins_build'] = os.environ.get("CBT_BUILD_NUMBER")
 
 class SeleniumCBT(unittest.TestCase):
     def setUp(self):

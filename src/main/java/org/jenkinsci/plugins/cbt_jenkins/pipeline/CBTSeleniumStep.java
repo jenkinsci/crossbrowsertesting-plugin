@@ -121,13 +121,14 @@ public class CBTSeleniumStep extends AbstractCBTStep {
                 if(test == null) {
                     // Unable to find the test based on normal caps
                     // Look for jenkins caps to be set
-                    log.warning("Unable to find test launched with Jenkins. Checking for 'jenkinsBuild' and 'jenkinsName' capabilities.");
+					log.warning("Unable to find test launched with Jenkins. Checking for 'jenkins_build' and 'jenkins_name' capabilities.");
                     test = seleniumApi.getSeleniumTestInfoWithJenkinsCaps(buildname, buildnumber, seleniumStep.browser, seleniumStep.operatingSystem, seleniumStep.resolution);
                     if(test == null) {
                         // User is hard-coding BuildName and BuildNumber, but not setting jenkinsName and jenkinsBuild in caps
                         String msg = "Unable to find test launched with Jenkins. "+
                                     "Are you using the Jenkins environment variables for the 'build' and 'name' caps? "+
-                                    "If not, you should pass 'jenkinsBuild' and 'jenkinsName' caps using the jenkins environment variables.";
+                                    "If not, you should pass 'jenkins_build' and 'jenkins_name' caps using the jenkins environment variables."+
+                                    "Check out the examples directory to see this in action.";
                         log.severe(msg);
                         throw new Error(msg);
                     }

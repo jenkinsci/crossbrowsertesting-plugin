@@ -303,7 +303,7 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
         	log.fine("sending a mixpanel event");
     		account.sendMixpanelEvent("Jenkins Plugin Downloaded");
         }
-        
+
         getDescriptor().seleniumApi.setRequest(username, authkey); // add credentials to requests
 
 		startLocalTunnel(listener);
@@ -446,7 +446,9 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
     		/*
     		 * Runs after the build
     		 */
-    		log.entering(this.getClass().getName(), "teardown" );
+			log.entering(this.getClass().getName(), "teardown" );
+
+
 			for (JSONObject config : seleniumTests) {
 				makeSeleniumBuildActionFromJSONObject(config);
 			}
@@ -477,13 +479,26 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 				Map<String, String> testInfo = seleniumEnvironments.get(key).poll();
 				String seleniumTestId = "";
 				String publicUrl = "";
+				if(testInfo == null) {
+					log.warning("Unable to find test launched with Jenkins. Checking for 'jenkins_build' and 'jenkins_name' capabilities.");
+                    testInfo = getDescriptor().seleniumApi.getSeleniumTestInfoWithJenkinsCaps(buildName, buildNumber, browserApiName, osApiName, resolution);
+                    if(testInfo == null) {
+                        // User is hard-coding BuildName and BuildNumber, but not setting jenkinsName and jenkinsBuild in caps
+                        String msg = "Unable to find test launched with Jenkins. "+
+                                    "Are you using the Jenkins environment variables for the 'build' and 'name' caps? "+
+									"If not, you should pass 'jenkins_build' and 'jenkins_name' caps using the jenkins environment variables."+
+									"Check out the examples directory to see this in action.";
+                        log.severe(msg);
+                        throw new Error(msg);
+                    }
+				}
 				try {
 					seleniumTestId = testInfo.get("selenium_test_id");
 					log.fine("seleniumTestId: "+ seleniumTestId);
 					publicUrl = testInfo.get("show_result_public_url");
 					log.fine("publicUrl: "+publicUrl);
 				}catch (NullPointerException npe) {
-					log.fine("got null pointer from seleniumTestId or publicUrl");
+					log.fine("Unable to locate selenium test id and public results link.");
 				}
 
 				se.setTestId(seleniumTestId);
