@@ -118,6 +118,21 @@ public class CBTSeleniumStep extends AbstractCBTStep {
             protected void finished(StepContext context) throws Exception {
                 Queue<Map<String, String>> tests = seleniumApi.getSeleniumTestInfo2(buildname, buildnumber, seleniumStep.browser, seleniumStep.operatingSystem, seleniumStep.resolution);
                 Map<String, String> test = tests.poll();
+                if(test == null) {
+                    // Unable to find the test based on normal caps
+                    // Look for jenkins caps to be set
+					log.warning("Unable to find test launched with Jenkins. Checking for 'jenkins_build' and 'jenkins_name' capabilities.");
+                    test = seleniumApi.getSeleniumTestInfoWithJenkinsCaps(buildname, buildnumber, seleniumStep.browser, seleniumStep.operatingSystem, seleniumStep.resolution);
+                    if(test == null) {
+                        // User is hard-coding BuildName and BuildNumber, but not setting jenkinsName and jenkinsBuild in caps
+                        String msg = "Unable to find test launched with Jenkins. "+
+                                    "Are you using the Jenkins environment variables for the 'build' and 'name' caps? "+
+                                    "If not, you should pass 'jenkins_build' and 'jenkins_name' caps using the jenkins environment variables."+
+                                    "Check out the examples directory to see this in action.";
+                        log.severe(msg);
+                        throw new Error(msg);
+                    }
+                }
                 boolean useTestResults = context.get(Boolean.class);
                 SeleniumBuildAction sba = new SeleniumBuildAction(useTestResults, seleniumStep.operatingSystem, seleniumStep.browser, seleniumStep.resolution);
                 sba.setTestId(test.get("selenium_test_id"));
