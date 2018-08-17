@@ -39,3 +39,5 @@ gradle-app.setting
 .classpath
 .metadata/
 
+.project
+
