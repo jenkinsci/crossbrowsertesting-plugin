@@ -60,7 +60,7 @@ release {
 
     git {
         requireBranch = 'master'
-        pushToRemote = 'jenkins'
+        pushToRemote = 'origin'
         commitVersionFileOnly = false
         signTag = false
     }
