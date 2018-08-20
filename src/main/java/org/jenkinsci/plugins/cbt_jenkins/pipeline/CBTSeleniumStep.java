@@ -133,11 +133,26 @@ public class CBTSeleniumStep extends AbstractCBTStep {
                         throw new Error(msg);
                     }
                 }
+
+                String testId = "";
+                String publicLink = "";
+
+                try {
+                    testId = test.get("selenium_test_id");
+                    publicLink = test.get("show_result_public_url");
+                } catch(NullPointerException npe) {
+                    log.warning("Unable to locate selenium test id and public results link.");
+                    if(test.containsKey("error_message")) {
+                        log.warning("Unable to locate selenium test id and public results link.");
+                        log.warning(test.get("error_message"));
+                    }
+                }
+
                 boolean useTestResults = context.get(Boolean.class);
                 SeleniumBuildAction sba = new SeleniumBuildAction(useTestResults, seleniumStep.operatingSystem, seleniumStep.browser, seleniumStep.resolution);
-                sba.setTestId(test.get("selenium_test_id"));
-                sba.setTestUrl(test.get("selenium_test_id"));
-                sba.setTestPublicUrl(test.get("show_result_public_url"));
+                sba.setTestId(testId);
+                sba.setTestUrl(testId);
+                sba.setTestPublicUrl(publicLink);
                 sba.setBuildName(buildname);
                 sba.setBuildNumber(buildnumber);
                 run.addAction(sba);

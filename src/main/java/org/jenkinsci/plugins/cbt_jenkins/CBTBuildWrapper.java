@@ -498,7 +498,10 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 					publicUrl = testInfo.get("show_result_public_url");
 					log.fine("publicUrl: "+publicUrl);
 				}catch (NullPointerException npe) {
-					log.fine("Unable to locate selenium test id and public results link.");
+					log.warning("Unable to locate selenium test id and public results link.");
+					if(testInfo.containsKey("error_message")) {
+						log.warning(testInfo.get("error_message"));
+					}
 				}
 
 				se.setTestId(seleniumTestId);
