@@ -492,28 +492,34 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
                         throw new Error(msg);
                     }
 				}
-				try {
-					seleniumTestId = testInfo.get("selenium_test_id");
-					log.fine("seleniumTestId: "+ seleniumTestId);
-					publicUrl = testInfo.get("show_result_public_url");
-					log.fine("publicUrl: "+publicUrl);
-				}catch (NullPointerException npe) {
+
+				if(testInfo.containsKey("error_message")) {
 					log.warning("Unable to locate selenium test id and public results link.");
-					if(testInfo.containsKey("error_message")) {
-						log.warning(testInfo.get("error_message"));
-					}
+					log.warning(testInfo.get("error_message"));
 				}
+				seleniumTestId = testInfo.get("selenium_test_id");
+				publicUrl = testInfo.get("show_result_public_url");
+
+				// if(seleniumTestId == null || seleniumTestId.isEmpty()) {
+				// 	// lets get a phony test id for the contributor if we cant find one for some reason
+				// 	seleniumTestId = getDescriptor().seleniumApi.getSeleniumTestId(buildName, buildNumber, browserApiName, osApiName, resolution);
+				// }
+
+				if(seleniumTestId == null)
+					seleniumTestId = "";
+				if(publicUrl == null)
+					publicUrl = "";
 
 				se.setTestId(seleniumTestId);
 				se.setTestPublicUrl(publicUrl);
 				se.setTestUrl(seleniumTestId);
-				if(seleniumTestId == null || seleniumTestId.isEmpty()) {
-					// lets get a phony test id for the contributor if we cant find one for some reason
-					seleniumTestId = getDescriptor().seleniumApi.getSeleniumTestId(buildName, buildNumber, browserApiName, osApiName, resolution);
-				}
 				String jenkinsVersion = build.getHudsonVersion();
 				String pluginVersion = getDescriptor().getVersion();
-				getDescriptor().seleniumApi.updateContributer(seleniumTestId, Constants.JENKINS_CONTRIBUTER, jenkinsVersion, pluginVersion);
+				try {
+					getDescriptor().seleniumApi.updateContributer(seleniumTestId, Constants.JENKINS_CONTRIBUTER, jenkinsVersion, pluginVersion);
+				} catch(IOException ioe) {
+
+				}
 			}
 			// we need to wait for the screenshots tests to finish (definitely before closing the tunnel)
 			boolean isAtLeastOneScreenshotTestActive;

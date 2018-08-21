@@ -134,28 +134,25 @@ public class CBTSeleniumStep extends AbstractCBTStep {
                     }
                 }
 
-                String testId = "";
-                String publicLink = "";
+                String testId = test.get("selenium_test_id");
+                String publicLink = test.get("show_result_public_url");
 
-                try {
-                    testId = test.get("selenium_test_id");
-                    publicLink = test.get("show_result_public_url");
-                } catch(NullPointerException npe) {
-                    log.warning("Unable to locate selenium test id and public results link.");
+                if(testId == null || testId.isEmpty()) {
+                    String errorMessage = "Unable to locate selenium test id and public results link.";
                     if(test.containsKey("error_message")) {
-                        log.warning("Unable to locate selenium test id and public results link.");
-                        log.warning(test.get("error_message"));
+                        errorMessage += test.get("error_message");
                     }
+                    log.warning(errorMessage);
+                } else {
+                    boolean useTestResults = context.get(Boolean.class);
+                    SeleniumBuildAction sba = new SeleniumBuildAction(useTestResults, seleniumStep.operatingSystem, seleniumStep.browser, seleniumStep.resolution);
+                    sba.setTestId(testId);
+                    sba.setTestUrl(testId);
+                    sba.setTestPublicUrl(publicLink);
+                    sba.setBuildName(buildname);
+                    sba.setBuildNumber(buildnumber);
+                    run.addAction(sba);
                 }
-
-                boolean useTestResults = context.get(Boolean.class);
-                SeleniumBuildAction sba = new SeleniumBuildAction(useTestResults, seleniumStep.operatingSystem, seleniumStep.browser, seleniumStep.resolution);
-                sba.setTestId(testId);
-                sba.setTestUrl(testId);
-                sba.setTestPublicUrl(publicLink);
-                sba.setBuildName(buildname);
-                sba.setBuildNumber(buildnumber);
-                run.addAction(sba);
             }
         }
     }
