@@ -123,27 +123,28 @@ public class CBTSeleniumStep extends AbstractCBTStep {
                     // Look for jenkins caps to be set
 					log.warning("Unable to find test launched with Jenkins. Checking for 'jenkins_build' and 'jenkins_name' capabilities.");
                     test = seleniumApi.getSeleniumTestInfoWithJenkinsCaps(buildname, buildnumber, seleniumStep.browser, seleniumStep.operatingSystem, seleniumStep.resolution);
-                    if(test == null) {
-                        // User is hard-coding BuildName and BuildNumber, but not setting jenkinsName and jenkinsBuild in caps
-                        String msg = "Unable to find test launched with Jenkins. "+
+                }
+
+                String testId = "";
+                String publicLink = "";
+
+                try {
+                    if(test.containsKey("error_message")) {
+						log.warning("Unable to locate selenium test id and public results link.");
+						log.warning(test.get("error_message"));
+					}
+                    testId = test.get("selenium_test_id");
+                    publicLink = test.get("show_result_public_url");
+                } catch(NullPointerException npe) {
+                    String msg = "Unable to find test launched with Jenkins. "+
                                     "Are you using the Jenkins environment variables for the 'build' and 'name' caps? "+
                                     "If not, you should pass 'jenkins_build' and 'jenkins_name' caps using the jenkins environment variables."+
                                     "Check out the examples directory to see this in action.";
-                        log.severe(msg);
-                        throw new Error(msg);
-                    }
+                    log.warning(msg);
+
                 }
 
-                String testId = test.get("selenium_test_id");
-                String publicLink = test.get("show_result_public_url");
-
-                if(testId == null || testId.isEmpty()) {
-                    String errorMessage = "Unable to locate selenium test id and public results link.";
-                    if(test.containsKey("error_message")) {
-                        errorMessage += test.get("error_message");
-                    }
-                    log.warning(errorMessage);
-                } else {
+                if(testId != null && !testId.isEmpty() && publicLink != null && !publicLink.isEmpty()) {
                     boolean useTestResults = context.get(Boolean.class);
                     SeleniumBuildAction sba = new SeleniumBuildAction(useTestResults, seleniumStep.operatingSystem, seleniumStep.browser, seleniumStep.resolution);
                     sba.setTestId(testId);

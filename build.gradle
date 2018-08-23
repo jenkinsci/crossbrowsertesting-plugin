@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'org.jenkins-ci.plugins'
-version = '2.5.3'
+version = '2.5.4'
 description = """This plugin integrates Jenkins users with Selenium Testing on CrossBrowserTesting.com. CrossBrowserTesting.com provides cross browser testing of websites, webpages, and web applications on Windows, Macs, and real iPhones, iPads, and Android Phones and Tablets."""
 
 sourceCompatibility = 1.8
@@ -26,7 +26,7 @@ repositories {
  * https://github.com/jenkinsci/gradle-jpi-plugin/blob/master/README.md
 */
 jenkinsPlugin {
-    coreVersion = '2.5'
+    coreVersion = '2.29'
     displayName = 'CrossBrowserTesting.com Plugin'
     url = 'https://wiki.jenkins-ci.org/display/JENKINS/CrossBrowserTesting+Plugin'
     gitHubUrl = 'http://github.com/jenkinsci/crossbrowsertesting-plugin'

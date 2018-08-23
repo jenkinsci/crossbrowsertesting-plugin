@@ -476,49 +476,46 @@ public class CBTBuildWrapper extends BuildWrapper implements Serializable {
 					Queue<Map<String, String>> tests = getDescriptor().seleniumApi.getSeleniumTestInfo2(buildName, buildNumber, browserApiName, osApiName, resolution);
 					seleniumEnvironments.put(key, tests);
 				}
-				Map<String, String> testInfo = seleniumEnvironments.get(key).poll();
+
 				String seleniumTestId = "";
 				String publicUrl = "";
+
+				Map<String, String> testInfo = seleniumEnvironments.get(key).poll();
+
 				if(testInfo == null) {
 					log.warning("Unable to find test launched with Jenkins. Checking for 'jenkins_build' and 'jenkins_name' capabilities.");
                     testInfo = getDescriptor().seleniumApi.getSeleniumTestInfoWithJenkinsCaps(buildName, buildNumber, browserApiName, osApiName, resolution);
-                    if(testInfo == null) {
-                        // User is hard-coding BuildName and BuildNumber, but not setting jenkinsName and jenkinsBuild in caps
-                        String msg = "Unable to find test launched with Jenkins. "+
+				}
+
+				try {
+					if(testInfo.containsKey("error_message")) {
+						log.warning("Unable to locate selenium test id and public results link.");
+						log.warning(testInfo.get("error_message"));
+					}
+					seleniumTestId = testInfo.get("selenium_test_id");
+					publicUrl = testInfo.get("show_result_public_url");
+				} catch(NullPointerException npe) {
+					String msg = "Unable to find test launched with Jenkins. "+
                                     "Are you using the Jenkins environment variables for the 'build' and 'name' caps? "+
 									"If not, you should pass 'jenkins_build' and 'jenkins_name' caps using the jenkins environment variables."+
 									"Check out the examples directory to see this in action.";
-                        log.severe(msg);
-                        throw new Error(msg);
-                    }
+					log.warning(msg);
+					listener.getLogger().println(msg);
 				}
 
-				if(testInfo.containsKey("error_message")) {
-					log.warning("Unable to locate selenium test id and public results link.");
-					log.warning(testInfo.get("error_message"));
-				}
-				seleniumTestId = testInfo.get("selenium_test_id");
-				publicUrl = testInfo.get("show_result_public_url");
-
-				// if(seleniumTestId == null || seleniumTestId.isEmpty()) {
-				// 	// lets get a phony test id for the contributor if we cant find one for some reason
-				// 	seleniumTestId = getDescriptor().seleniumApi.getSeleniumTestId(buildName, buildNumber, browserApiName, osApiName, resolution);
-				// }
-
-				if(seleniumTestId == null)
-					seleniumTestId = "";
-				if(publicUrl == null)
-					publicUrl = "";
-
-				se.setTestId(seleniumTestId);
-				se.setTestPublicUrl(publicUrl);
-				se.setTestUrl(seleniumTestId);
-				String jenkinsVersion = build.getHudsonVersion();
-				String pluginVersion = getDescriptor().getVersion();
-				try {
-					getDescriptor().seleniumApi.updateContributer(seleniumTestId, Constants.JENKINS_CONTRIBUTER, jenkinsVersion, pluginVersion);
-				} catch(IOException ioe) {
-
+				if(seleniumTestId != null && !seleniumTestId.isEmpty() && publicUrl != null && !publicUrl.isEmpty()) {
+					se.setTestId(seleniumTestId);
+					se.setTestPublicUrl(publicUrl);
+					se.setTestUrl(seleniumTestId);
+					String jenkinsVersion = build.getHudsonVersion();
+					String pluginVersion = getDescriptor().getVersion();
+					try {
+						getDescriptor().seleniumApi.updateContributer(seleniumTestId, Constants.JENKINS_CONTRIBUTER, jenkinsVersion, pluginVersion);
+					} catch(IOException ioe) {
+						log.warning("Unable to update contributer using CBT API");
+					}
+				} else {
+					build.removeAction(se);
 				}
 			}
 			// we need to wait for the screenshots tests to finish (definitely before closing the tunnel)

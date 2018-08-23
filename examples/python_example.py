@@ -20,8 +20,8 @@ caps['record_video'] = 'true'
 # Just set the jenkins_name and jenkins_build caps to the proper environment variables
 # that Jenkins sets. This allows Jenkins to locate the test after it has run:
 
-# caps['name'] = "Hard-coded build name"
-# caps['build'] = "1.0.0"
+caps['name'] = "Hard-coded build name"
+caps['build'] = "1.0.0"
 # caps['jenkins_name'] = os.environ.get("CBT_BUILD_NAME")
 # caps['jenkins_build'] = os.environ.get("CBT_BUILD_NUMBER")
 
