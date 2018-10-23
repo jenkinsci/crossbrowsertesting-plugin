@@ -170,9 +170,14 @@ public final class CBTDescriptor extends BuildWrapperDescriptor {
         return items;
     }
     public ListBoxModel doFillBrowserListItems() {
+		ListBoxModel items = new ListBoxModel();
+
+        if (getUsername() == null || getUsername().eqauls("")) {
+            items.add("**Please add Username/Authkey**", "");
+            return items;
+        }
 		screenshotApi = new Screenshots(getUsername(), getAuthkey());
 		checkProxySettingsAndReloadRequest(screenshotApi);
-		ListBoxModel items = new ListBoxModel();
 
         try {
 			if (screenshotApi == null && getUsername() != null) {
@@ -191,9 +196,15 @@ public final class CBTDescriptor extends BuildWrapperDescriptor {
         return items;
     }
 	public ListBoxModel doFillLoginProfileItems() {
+		ListBoxModel items = new ListBoxModel();
+
+        if (getUsername() == null || getUsername().eqauls("")) {
+            items.add("**Please add Username/Authkey**", "");
+            return items;
+        }
+
 		screenshotApi = new Screenshots(getUsername(), getAuthkey());
 		checkProxySettingsAndReloadRequest(screenshotApi);
-		ListBoxModel items = new ListBoxModel();
 		try {
             if (screenshotApi == null && getUsername() != null) {
                 screenshotApi = new Screenshots(getUsername(), getAuthkey());
