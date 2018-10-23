@@ -172,7 +172,7 @@ public final class CBTDescriptor extends BuildWrapperDescriptor {
     public ListBoxModel doFillBrowserListItems() {
 		ListBoxModel items = new ListBoxModel();
 
-        if (getUsername() == null || getUsername().eqauls("")) {
+        if (getUsername() == null || getUsername().equals("")) {
             items.add("**Please add Username/Authkey**", "");
             return items;
         }
@@ -198,7 +198,7 @@ public final class CBTDescriptor extends BuildWrapperDescriptor {
 	public ListBoxModel doFillLoginProfileItems() {
 		ListBoxModel items = new ListBoxModel();
 
-        if (getUsername() == null || getUsername().eqauls("")) {
+        if (getUsername() == null || getUsername().equals("")) {
             items.add("**Please add Username/Authkey**", "");
             return items;
         }
