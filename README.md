@@ -22,15 +22,19 @@ Wiki: https://wiki.jenkins-ci.org/display/JENKINS/CrossBrowserTesting+Plugin
 - [JDK][java] &#8805; 8
 
 <pre>gradlew server</pre>
-###### to specify the version of jenkins:
+###### To specify the version of jenkins:
 <pre>gradlew server -Pjenkins=${jenkins_version}</pre>
 
-###### to make it run a little faster, turn on caching:
+###### To make it run a little faster, turn on caching:
 <pre>gradlew server -Pjenkins=${jenkins_version} -Dstapler.jelly.noCache=false</pre>
+
+##### To build test plugin
+After you have made all changes, update the version number in `build.gradle` (line 10). Run `./gradlew build`, then `./gradlew compileJava`. This will create a 'build' folder in the root the project. Inside that folder is a 'libs' folder that contains a .hpi file. Remove any existing version of the CBT Plugin from your Jenkins server, then place that .hpi file into your Jenkins plugin folder, restart Jenkins, and test.
+
 ##### To release:
-make sure all code has been committed to your local git repo
+Make sure all code has been committed to your local git repo
 <pre>gradlew publish release</pre>
-credentials for the publish should be in a file [~/.jenkins-ci.org][jenkins_credentials_documentation]
+Credentials for the publish should be in a file [~/.jenkins-ci.org][jenkins_credentials_documentation] (note that this goes in your home directory)
 
 [jenkins_credentials_documentation]: https://wiki.jenkins.io/display/JENKINS/Dot+Jenkins+Ci+Dot+Org
 [latest_version]: http://updates.jenkins-ci.org/latest/crossbrowsertesting.hpi
