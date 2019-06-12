@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'org.jenkins-ci.plugins'
-version = '2.5.7'
+version = '2.5.15'
 description = """This plugin integrates Jenkins users with Selenium Testing on CrossBrowserTesting.com. CrossBrowserTesting.com provides cross browser testing of websites, webpages, and web applications on Windows, Macs, and real iPhones, iPads, and Android Phones and Tablets."""
 
 sourceCompatibility = 1.8

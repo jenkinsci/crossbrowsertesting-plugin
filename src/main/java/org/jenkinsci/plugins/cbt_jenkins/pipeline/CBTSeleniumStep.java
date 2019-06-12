@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Queue;
 import java.util.logging.Logger;
+import java.util.Arrays;
 
 public class CBTSeleniumStep extends AbstractCBTStep {
     private transient final static Logger log = Logger.getLogger(CBTSeleniumStep.class.getName());
@@ -64,14 +65,45 @@ public class CBTSeleniumStep extends AbstractCBTStep {
         @Override
         public boolean start() throws Exception {
             seleniumApi.setRequest(getUsername(), getAuthkey());
-            String browserIconClass = seleniumApi.operatingSystems2.get(seleniumStep.operatingSystem).browsers2.get(seleniumStep.browser).getIconClass();
             String browserName = "";
-            if (browserIconClass.equals("ie")) {
-                browserName = "internet explorer";
-            } else if (browserIconClass.equals("safari-mobile")) {
-                browserName = "safari";
-            } else {
-                browserName = browserIconClass;
+            OperatingSystem os = null;
+            Browser browser = null;
+            
+            try {
+                log.finest("looking for os " + seleniumStep.operatingSystem + " with browser " + seleniumStep.browser);
+                os = seleniumApi.operatingSystems2.get(seleniumStep.operatingSystem);
+                log.finest("using operatingSystem " + os.getApiName() + " with browsers " + os.browsers2.toString());
+                browser = os.browsers2.get(seleniumStep.browser);
+                log.finest("using browser " + browser);
+                String browserIconClass = browser.getIconClass();
+                log.finest("got iconclass of " + browserIconClass);
+                if (browserIconClass.equals("ie")) {
+                    browserName = "internet explorer";
+                } else if (browserIconClass.equals("safari-mobile")) {
+                    browserName = "safari";
+                } else {
+                    browserName = browserIconClass;
+                }
+                log.finest("got browserName of " + browserName);
+            } catch (NullPointerException npe) {
+                listener.getLogger().println("Could not find requested OS|browser combination: " 
+                        + seleniumStep.operatingSystem + "|" + seleniumStep.browser);
+                if (os != null && os.browsers2 != null){
+                    String[] browserList = os.browsers2.keySet().toArray(new String[0]);
+                    Arrays.sort(browserList);
+                    String browserListString = Arrays.toString(browserList);
+                    listener.getLogger().println("Browsers available on " + seleniumStep.operatingSystem + ": " 
+                            + browserListString);
+                }
+                else if (os == null) {
+                    String[] osList = seleniumApi.operatingSystems2.keySet().toArray(new String[0]);
+                    Arrays.sort(osList);
+                    String osListString = Arrays.toString(osList);
+                    listener.getLogger().println("Specified OS (" + seleniumStep.operatingSystem + ") not found!");
+                    listener.getLogger().println("Available OSes: " + osListString);
+                }
+                log.severe("Could not find requested OS|browser combination: " + seleniumStep.operatingSystem + "|" + seleniumStep.browser);
+                throw new BrowserNotFoundException(seleniumStep.operatingSystem + "|" + seleniumStep.browser + " not available.");
             }
             // set environment variables
             Map<String, String> env = new HashMap<String, String>();
@@ -211,4 +243,9 @@ public class CBTSeleniumStep extends AbstractCBTStep {
             return items;
         }
     }
+}
+
+class BrowserNotFoundException extends Exception {
+    public BrowserNotFoundException() {}
+    public BrowserNotFoundException(String message) { super(message); }
 }
