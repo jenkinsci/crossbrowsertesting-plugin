@@ -1,5 +1,5 @@
 plugins {
-    id 'org.jenkins-ci.jpi' version '0.22.0'
+    id 'org.jenkins-ci.jpi' version '0.36.2'
     id 'net.researchgate.release' version '2.6.0'
     id "se.bjurr.gitchangelog.git-changelog-gradle-plugin" version "1.50"
     id 'java'
@@ -87,9 +87,11 @@ dependencies {
 if (project.hasProperty('jenkins')) {
     jenkinsPlugin.coreVersion = project.getProperty('jenkins')
 }
-task wrapper(type: Wrapper) {
-    gradleVersion = '4.0.2'
+
+wrapper {
+    gradleVersion = '6.0.1'
 }
+
 task changelog(type: se.bjurr.gitchangelog.plugin.gradle.GitChangelogTask) {
     file = new File("CHANGELOG.md");
     templateContent = """
