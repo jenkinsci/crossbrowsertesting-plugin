@@ -1,5 +1,5 @@
 plugins {
-    id 'org.jenkins-ci.jpi' version '0.22.0'
+    id 'org.jenkins-ci.jpi' version '0.40.0-rc.2'
     id 'net.researchgate.release' version '2.6.0'
     id "se.bjurr.gitchangelog.git-changelog-gradle-plugin" version "1.50"
     id 'java'
@@ -7,14 +7,14 @@ plugins {
 }
 
 group = 'org.jenkins-ci.plugins'
-version = '2.5.18'
+version = '2.5.19'
 description = """This plugin integrates Jenkins users with Selenium Testing on CrossBrowserTesting.com. CrossBrowserTesting.com provides cross browser testing of websites, webpages, and web applications on Windows, Macs, and real iPhones, iPads, and Android Phones and Tablets."""
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 tasks.withType(JavaCompile) {
-	options.encoding = 'UTF-8'
+    options.encoding = 'UTF-8'
 }
 
 repositories {
@@ -71,13 +71,15 @@ dependencies {
     compile group: 'commons-codec', name: 'commons-codec', version:'1.9'
     compile group: 'com.fizzed', name: 'jne', version: '3.0.0'
     compile group: 'com.github.crossbrowsertesting', name: 'ci-common', version:'1.4.12'
-    testCompile group: 'org.codehaus.mojo', name: 'findbugs-maven-plugin', version: '3.0.4'
+    compile group: 'org.jenkins-ci.plugins.workflow', name: 'workflow-step-api', version: '2.13'
+    compile group: 'org.jenkins-ci.plugins', name: 'credentials', version: '2.1.16'
+   
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.0")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.0")
+}
 
-    jenkinsPlugins group: 'org.jenkins-ci.plugins', name: 'junit', version: '1.9', ext: 'jar'
-    jenkinsPlugins group: 'org.jenkins-ci.plugins', name: 'credentials', version: '2.1.12', ext: 'jar'
-    //jenkinsPlugins group: 'org.jenkins-ci.plugins', name: 'credentials', version: '2.1.16', ext: 'jar'
-
-    jenkinsPlugins group: 'org.jenkins-ci.plugins.workflow', name: 'workflow-step-api', version: '2.12', ext: 'jar'
+test {
+    useJUnitPlatform()
 }
 
 /*
@@ -88,9 +90,7 @@ dependencies {
 if (project.hasProperty('jenkins')) {
     jenkinsPlugin.coreVersion = project.getProperty('jenkins')
 }
-task wrapper(type: Wrapper) {
-    gradleVersion = '4.0.2'
-}
+
 task changelog(type: se.bjurr.gitchangelog.plugin.gradle.GitChangelogTask) {
     file = new File("CHANGELOG.md");
     templateContent = """
