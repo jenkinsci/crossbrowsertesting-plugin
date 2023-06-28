@@ -1,1 +1,1 @@
-buildPlugin()
+buildPluginWithGradle(useContainerAgent: true)
